@@ -24,9 +24,9 @@ class GCNClassifier(nn.Module):
         return self.gcn_model.gcn.conv_l2()
 
     def forward(self, inputs):
-        outputs, pooling_output = self.gcn_model(inputs)
+        outputs = self.gcn_model(inputs)
         logits = self.classifier(outputs)
-        return logits, pooling_output
+        return logits
 
 class GCNRelationModel(nn.Module):
     def __init__(self, opt, emb_matrix=None):
@@ -37,15 +37,14 @@ class GCNRelationModel(nn.Module):
         # create embedding layers
         self.emb = nn.Embedding(opt['vocab_size'], opt['emb_dim'], padding_idx=constant.PAD_ID)
         self.pos_emb = nn.Embedding(len(constant.POS_TO_ID), opt['pos_dim']) if opt['pos_dim'] > 0 else None
-        self.ner_emb = nn.Embedding(len(constant.NER_TO_ID), opt['ner_dim']) if opt['ner_dim'] > 0 else None
-        embeddings = (self.emb, self.pos_emb, self.ner_emb)
+        embeddings = (self.emb, self.pos_emb)
         self.init_embeddings()
 
         # gcn layer
         self.gcn = GCN(opt, embeddings, opt['hidden_dim'], opt['num_layers'])
 
         # output mlp layers
-        in_dim = opt['hidden_dim']*3
+        in_dim = opt['hidden_dim']*2
         layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
         for _ in range(self.opt['mlp_layers']-1):
             layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
@@ -69,29 +68,26 @@ class GCNRelationModel(nn.Module):
             print("Finetune all embeddings.")
 
     def forward(self, inputs):
-        words, masks, pos, ner, deprel, head, subj_pos, obj_pos, subj_type, obj_type = inputs # unpack
+        words, masks, pos, head = inputs # unpack
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
-        def inputs_to_tree_reps(head, words, l, prune, subj_pos, obj_pos):
-            trees = [head_to_tree(head[i], words[i], l[i], prune, subj_pos[i], obj_pos[i]) for i in range(len(l))]
-            adj = [tree_to_adj(maxlen, tree, directed=False, self_loop=False).reshape(1, maxlen, maxlen) for tree in trees]
-            adj = np.concatenate(adj, axis=0)
-            adj = torch.from_numpy(adj)
-            return Variable(adj.cuda()) if self.opt['cuda'] else Variable(adj)
-
-        adj = inputs_to_tree_reps(head.data, words.data, l, self.opt['prune_k'], subj_pos.data, obj_pos.data)
-        h, pool_mask = self.gcn(adj, inputs)
+        # def inputs_to_tree_reps(head, words, l, prune, subj_pos, obj_pos):
+        #     trees = [head_to_tree(head[i], words[i], l[i], prune, subj_pos[i], obj_pos[i]) for i in range(len(l))]
+        #     adj = [tree_to_adj(maxlen, tree, directed=False, self_loop=False).reshape(1, maxlen, maxlen) for tree in trees]
+        #     adj = np.concatenate(adj, axis=0)
+        #     adj = torch.from_numpy(adj)
+        #     return Variable(adj.cuda()) if self.opt['cuda'] else Variable(adj)
+        #
+        # adj = inputs_to_tree_reps(head.data, words.data, l, self.opt['prune_k'], subj_pos.data, obj_pos.data)
+        h, pool_mask = self.gcn(None, inputs)
         
         # pooling
-        subj_mask, obj_mask = subj_pos.eq(0).eq(0).unsqueeze(2), obj_pos.eq(0).eq(0).unsqueeze(2) # invert mask
-        pool_type = self.opt['pooling']
-        h_out = pool(h, pool_mask, type=pool_type)
-        subj_out = pool(h, subj_mask, type=pool_type)
-        obj_out = pool(h, obj_mask, type=pool_type)
-        outputs = torch.cat([h_out, subj_out, obj_out], dim=1)
-        outputs = self.out_mlp(outputs)
-        return outputs, h_out
+        # pool_type = self.opt['pooling']
+        # h_out = pool(h, pool_mask, type=pool_type)
+        # outputs = torch.cat([h_out], dim=1)
+        outputs = self.out_mlp(h)
+        return outputs
 
 class GCN(nn.Module):
     """ A GCN/Contextualized GCN module operated on dependency graphs. """
@@ -101,9 +97,9 @@ class GCN(nn.Module):
         self.layers = num_layers
         self.use_cuda = opt['cuda']
         self.mem_dim = mem_dim
-        self.in_dim = opt['emb_dim'] + opt['pos_dim'] + opt['ner_dim']
+        self.in_dim = opt['emb_dim'] + opt['pos_dim']
 
-        self.emb, self.pos_emb, self.ner_emb = embeddings
+        self.emb, self.pos_emb = embeddings
 
         # rnn layer
         if self.opt.get('rnn', False):
@@ -117,11 +113,11 @@ class GCN(nn.Module):
         self.gcn_drop = nn.Dropout(opt['gcn_dropout'])
 
         # gcn layer
-        self.W = nn.ModuleList()
-
-        for layer in range(self.layers):
-            input_dim = self.in_dim if layer == 0 else self.mem_dim
-            self.W.append(nn.Linear(input_dim, self.mem_dim))
+        # self.W = nn.ModuleList()
+        #
+        # for layer in range(self.layers):
+        #     input_dim = self.in_dim if layer == 0 else self.mem_dim
+        #     self.W.append(nn.Linear(input_dim, self.mem_dim))
 
     def conv_l2(self):
         conv_weights = []
@@ -138,13 +134,11 @@ class GCN(nn.Module):
         return rnn_outputs
 
     def forward(self, adj, inputs):
-        words, masks, pos, ner, deprel, head, subj_pos, obj_pos, subj_type, obj_type = inputs # unpack
+        words, masks, pos, head = inputs # unpack
         word_embs = self.emb(words)
         embs = [word_embs]
         if self.opt['pos_dim'] > 0:
             embs += [self.pos_emb(pos)]
-        if self.opt['ner_dim'] > 0:
-            embs += [self.ner_emb(ner)]
         embs = torch.cat(embs, dim=2)
         embs = self.in_drop(embs)
 
@@ -155,22 +149,22 @@ class GCN(nn.Module):
             gcn_inputs = embs
         
         # gcn layer
-        denom = adj.sum(2).unsqueeze(2) + 1
-        mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
-        # zero out adj for ablation
-        if self.opt.get('no_adj', False):
-            adj = torch.zeros_like(adj)
+        # denom = adj.sum(2).unsqueeze(2) + 1
+        # mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
+        # # zero out adj for ablation
+        # if self.opt.get('no_adj', False):
+        #     adj = torch.zeros_like(adj)
+        #
+        # for l in range(self.layers):
+        #     Ax = adj.bmm(gcn_inputs)
+        #     AxW = self.W[l](Ax)
+        #     AxW = AxW + self.W[l](gcn_inputs) # self loop
+        #     AxW = AxW / denom
+        #
+        #     gAxW = F.relu(AxW)
+        #     gcn_inputs = self.gcn_drop(gAxW) if l < self.layers - 1 else gAxW
 
-        for l in range(self.layers):
-            Ax = adj.bmm(gcn_inputs)
-            AxW = self.W[l](Ax)
-            AxW = AxW + self.W[l](gcn_inputs) # self loop
-            AxW = AxW / denom
-
-            gAxW = F.relu(AxW)
-            gcn_inputs = self.gcn_drop(gAxW) if l < self.layers - 1 else gAxW
-
-        return gcn_inputs, mask
+        return gcn_inputs, masks.unsqueeze(2)
 
 def pool(h, mask, type='max'):
     if type == 'max':

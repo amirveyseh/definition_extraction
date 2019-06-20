@@ -21,7 +21,7 @@ from utils import torch_utils, scorer, constant, helper
 from utils.vocab import Vocab
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='dataset/tacred')
+parser.add_argument('--data_dir', type=str, default='dataset/definition')
 parser.add_argument('--vocab_dir', type=str, default='dataset/vocab')
 parser.add_argument('--emb_dim', type=int, default=300, help='Word embedding dimension.')
 parser.add_argument('--ner_dim', type=int, default=30, help='NER embedding dimension.')
@@ -154,7 +154,7 @@ for epoch in range(1, opt['num_epoch']+1):
         preds, _, loss = trainer.predict(batch)
         predictions += preds
         dev_loss += loss
-    predictions = [id2label[p] for p in predictions]
+    predictions = [[id2label[l+1]] for p in predictions for l in p]
     train_loss = train_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
     dev_loss = dev_loss / dev_batch.num_examples * opt['batch_size']
 

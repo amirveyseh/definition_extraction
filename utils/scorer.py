@@ -8,7 +8,9 @@ import argparse
 import sys
 from collections import Counter
 
-NO_RELATION = "no_relation"
+from utils import constant
+
+NO_RELATION = constant.NEGATIVE_LABEL
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Score a prediction file using the gold labels.')
@@ -18,6 +20,17 @@ def parse_arguments():
     return args
 
 def score(key, prediction, verbose=False):
+
+    the_key = []
+    the_prediction = []
+
+    for i, k in enumerate(key):
+        the_key.extend(k)
+        the_prediction.extend(prediction[i])
+
+    key = the_key
+    prediction = the_prediction
+
     correct_by_relation = Counter()
     guessed_by_relation = Counter()
     gold_by_relation    = Counter()

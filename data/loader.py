@@ -31,7 +31,7 @@ class DataLoader(object):
             random.shuffle(indices)
             data = [data[i] for i in indices]
         self.id2label = dict([(v,k) for k,v in self.label2id.items()])
-        self.labels = [self.id2label[d[-1]] for d in data]
+        self.labels = [[self.id2label[l]] for d in data for l in d[-1]]
         self.num_examples = len(data)
 
         # chunk into batches
@@ -43,27 +43,16 @@ class DataLoader(object):
         """ Preprocess the data and convert to ids. """
         processed = []
         for d in data:
-            tokens = list(d['token'])
+            tokens = list(d['tokens'])
             if opt['lower']:
                 tokens = [t.lower() for t in tokens]
-            # anonymize tokens
-            ss, se = d['subj_start'], d['subj_end']
-            os, oe = d['obj_start'], d['obj_end']
-            tokens[ss:se+1] = ['SUBJ-'+d['subj_type']] * (se-ss+1)
-            tokens[os:oe+1] = ['OBJ-'+d['obj_type']] * (oe-os+1)
             tokens = map_to_ids(tokens, vocab.word2id)
-            pos = map_to_ids(d['stanford_pos'], constant.POS_TO_ID)
-            ner = map_to_ids(d['stanford_ner'], constant.NER_TO_ID)
-            deprel = map_to_ids(d['stanford_deprel'], constant.DEPREL_TO_ID)
-            head = [int(x) for x in d['stanford_head']]
-            assert any([x == 0 for x in head])
+            pos = map_to_ids(d['pos'], constant.POS_TO_ID)
+            head = [int(x) for x in d['heads']]
+            assert any([x == -1 for x in head])
             l = len(tokens)
-            subj_positions = get_positions(d['subj_start'], d['subj_end'], l)
-            obj_positions = get_positions(d['obj_start'], d['obj_end'], l)
-            subj_type = [constant.SUBJ_NER_TO_ID[d['subj_type']]]
-            obj_type = [constant.OBJ_NER_TO_ID[d['obj_type']]]
-            relation = self.label2id[d['relation']]
-            processed += [(tokens, pos, ner, deprel, head, subj_positions, obj_positions, subj_type, obj_type, relation)]
+            labels = [self.label2id[l] for l in d['labels']]
+            processed += [(tokens, pos, head, labels)]
         return processed
 
     def gold(self):
@@ -82,7 +71,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 10
+        assert len(batch) == 4
 
         # sort all fields by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
@@ -98,17 +87,11 @@ class DataLoader(object):
         words = get_long_tensor(words, batch_size)
         masks = torch.eq(words, 0)
         pos = get_long_tensor(batch[1], batch_size)
-        ner = get_long_tensor(batch[2], batch_size)
-        deprel = get_long_tensor(batch[3], batch_size)
-        head = get_long_tensor(batch[4], batch_size)
-        subj_positions = get_long_tensor(batch[5], batch_size)
-        obj_positions = get_long_tensor(batch[6], batch_size)
-        subj_type = get_long_tensor(batch[7], batch_size)
-        obj_type = get_long_tensor(batch[8], batch_size)
+        head = get_long_tensor(batch[2], batch_size)
 
-        rels = torch.LongTensor(batch[9])
+        labels = get_long_tensor(batch[3], batch_size)
 
-        return (words, masks, pos, ner, deprel, head, subj_positions, obj_positions, subj_type, obj_type, rels, orig_idx)
+        return (words, masks, pos, head, labels, orig_idx)
 
     def __iter__(self):
         for i in range(self.__len__()):

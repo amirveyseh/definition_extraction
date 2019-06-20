@@ -11,9 +11,9 @@ from utils import vocab, constant, helper
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Prepare vocab for relation extraction.')
-    parser.add_argument('data_dir', help='TACRED directory.')
+    parser.add_argument('data_dir', help='Definition directory.')
     parser.add_argument('vocab_dir', help='Output vocab directory.')
-    parser.add_argument('--glove_dir', default='dataset/glove', help='GloVe directory.')
+    parser.add_argument('--glove_dir', default='/glove', help='GloVe directory.')
     parser.add_argument('--wv_file', default='glove.840B.300d.txt', help='GloVe vector file.')
     parser.add_argument('--wv_dim', type=int, default=300, help='GloVe vector dimension.')
     parser.add_argument('--min_freq', type=int, default=0, help='If > 0, use min_freq as the cutoff.')
@@ -75,11 +75,7 @@ def load_tokens(filename):
         data = json.load(infile)
         tokens = []
         for d in data:
-            ts = d['token']
-            ss, se, os, oe = d['subj_start'], d['subj_end'], d['obj_start'], d['obj_end']
-            # do not create vocab for entity words
-            ts[ss:se+1] = ['<PAD>']*(se-ss+1)
-            ts[os:oe+1] = ['<PAD>']*(oe-os+1)
+            ts = d['tokens']
             tokens += list(filter(lambda t: t!='<PAD>', ts))
     print("{} tokens from {} examples loaded from {}.".format(len(tokens), len(data), filename))
     return tokens
@@ -93,7 +89,7 @@ def build_vocab(tokens, glove_vocab, min_freq):
     else:
         v = sorted([t for t in counter if t in glove_vocab], key=counter.get, reverse=True)
     # add special tokens and entity mask tokens
-    v = constant.VOCAB_PREFIX + entity_masks() + v
+    v = constant.VOCAB_PREFIX + v
     print("vocab built with {}/{} words.".format(len(v), len(counter)))
     return v
 
@@ -102,15 +98,6 @@ def count_oov(tokens, vocab):
     total = sum(c.values())
     matched = sum(c[t] for t in vocab)
     return total, total-matched
-
-def entity_masks():
-    """ Get all entity mask tokens as a list. """
-    masks = []
-    subj_entities = list(constant.SUBJ_NER_TO_ID.keys())[2:]
-    obj_entities = list(constant.OBJ_NER_TO_ID.keys())[2:]
-    masks += ["SUBJ-" + e for e in subj_entities]
-    masks += ["OBJ-" + e for e in obj_entities]
-    return masks
 
 if __name__ == '__main__':
     main()

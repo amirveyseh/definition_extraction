@@ -58,7 +58,9 @@ for i, b in enumerate(batch_iter):
     predictions += preds
     all_probs += probs
 
-predictions = [id2label[p] for p in predictions]
+predictions = [[id2label[l+1]] for p in predictions for l in p]
+print(len(predictions))
+print(len(batch.gold()))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True)
 print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset,p,r,f1))
 
