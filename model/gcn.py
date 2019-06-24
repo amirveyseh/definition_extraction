@@ -147,7 +147,8 @@ class GCN(nn.Module):
             gcn_inputs = self.rnn_drop(self.encode_with_rnn(embs, masks, words.size()[0]))
         else:
             gcn_inputs = embs
-        
+
+
         # gcn layer
         # denom = adj.sum(2).unsqueeze(2) + 1
         # mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
