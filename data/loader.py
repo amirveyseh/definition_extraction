@@ -52,7 +52,11 @@ class DataLoader(object):
             assert any([x == -1 for x in head])
             l = len(tokens)
             labels = [self.label2id[l] for l in d['labels']]
-            processed += [(tokens, pos, head, labels)]
+            if self.opt['only_label'] == 1:
+                if d['label'] != 'none':
+                    processed += [(tokens, pos, head, labels)]
+            else:
+                processed += [(tokens, pos, head, labels)]
         return processed
 
     def gold(self):

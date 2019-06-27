@@ -37,6 +37,7 @@ parser.add_argument('--no-lower', dest='lower', action='store_false')
 parser.set_defaults(lower=False)
 
 parser.add_argument('--ratio', type=int, default=1, help='Negative samples ratio')
+parser.add_argument('--only_label', type=int, default=1, help='')
 
 parser.add_argument('--prune_k', default=-1, type=int, help='Prune the dependency tree to <= K distance off the dependency path; set to -1 for no pruning.')
 parser.add_argument('--conv_l2', type=float, default=0, help='L2-weight decay on conv layers only.')

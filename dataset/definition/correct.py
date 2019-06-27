@@ -16,16 +16,16 @@ with open("dev.json") as file:
 ######################################################
 
 
-tags = {}
-i = 0
-
-for d in dataset:
-    for l in d['labels']:
-        if l not in tags:
-            i += 1
-            tags[l] = i
-
-print(tags)
+# tags = {}
+# i = 0
+#
+# for d in dataset:
+#     for l in d['labels']:
+#         if l not in tags:
+#             i += 1
+#             tags[l] = i
+#
+# print(tags)
 
 
 #######################################################
@@ -37,4 +37,9 @@ print(tags)
 #
 # with open("dev.json", 'w') as file:
 #     json.dump(dataset, file)
+
+
+#######################################################
+
+
 
