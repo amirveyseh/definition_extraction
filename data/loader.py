@@ -43,6 +43,8 @@ class DataLoader(object):
         """ Preprocess the data and convert to ids. """
         processed = []
         for d in data:
+            if 'I-Qualifier-frag' in d['labels']:
+                continue
             tokens = list(d['tokens'])
             if opt['lower']:
                 tokens = [t.lower() for t in tokens]
