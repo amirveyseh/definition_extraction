@@ -170,36 +170,48 @@ from sklearn.model_selection import train_test_split
 
 ################################################################################################################
 
-dataset = []
-
-with open('merged/test.json') as file:
-    dataset += json.load(file)
-
-# tags = defaultdict(int)
+# dataset = []
 #
-# for d in dataset:
-#     for l in d['labels']:
-#         tags[l] += 1
+# with open('merged/test.json') as file:
+#     dataset += json.load(file)
 #
-# print(tags['B-Term'])
-# print(tags['I-Term'])
-# print(tags['B-Definition'])
-# print(tags['I-Definition'])
-# print(tags['B-Ordered-Term'])
-# print(tags['I-Ordered-Term'])
-# print(tags['B-Ordered-Definition'])
-# print(tags['I-Ordered-Definition'])
-# print(tags['B-Alias-Term'])
-# print(tags['I-Alias-Term'])
-# print(tags['B-Secondary-Definition'])
-# print(tags['I-Secondary-Definition'])
-# print(tags['B-Referential-Term'])
-# print(tags['I-Referential-Term'])
-# print(tags['B-Referential-Definition'])
-# print(tags['I-Referential-Definition'])
-# print(tags['B-Qualifier'])
-# print(tags['I-Qualifier'])
+# # tags = defaultdict(int)
+# #
+# # for d in dataset:
+# #     for l in d['labels']:
+# #         tags[l] += 1
+# #
+# # print(tags['B-Term'])
+# # print(tags['I-Term'])
+# # print(tags['B-Definition'])
+# # print(tags['I-Definition'])
+# # print(tags['B-Ordered-Term'])
+# # print(tags['I-Ordered-Term'])
+# # print(tags['B-Ordered-Definition'])
+# # print(tags['I-Ordered-Definition'])
+# # print(tags['B-Alias-Term'])
+# # print(tags['I-Alias-Term'])
+# # print(tags['B-Secondary-Definition'])
+# # print(tags['I-Secondary-Definition'])
+# # print(tags['B-Referential-Term'])
+# # print(tags['I-Referential-Term'])
+# # print(tags['B-Referential-Definition'])
+# # print(tags['I-Referential-Definition'])
+# # print(tags['B-Qualifier'])
+# # print(tags['I-Qualifier'])
+#
+# print(len(dataset))
 
-print(len(dataset))
 
+###############################################################################################################
+
+
+# f1s = [20, 22, 36, 47, 20, 15, 20, 15, 0, 0, 0, 0, 67, 72, 0, 0, 0, 0]
+f1s = [20, 22, 36, 47, 20, 15, 20, 15, 0, 0, 0, 0, 67, 72]
+counts = [451, 2377, 2131, 87442, 281, 6263, 41, 244, 1, 1, 76, 2096, 2565, 6174]
+
+print(sum(f1s) / len(f1s))
+for i, c in enumerate(counts):
+    f1s[i] *= c
+print(sum(f1s)/sum(counts))
 

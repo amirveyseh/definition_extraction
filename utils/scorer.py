@@ -19,7 +19,7 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def score(key, prediction, verbose=False):
+def score(key, prediction, verbose=False, verbose_output=False):
 
     the_key = []
     the_prediction = []
@@ -51,6 +51,11 @@ def score(key, prediction, verbose=False):
             gold_by_relation[gold] += 1
             if gold == guess:
                 correct_by_relation[guess] += 1
+
+    precesions = {}
+    recalls = {}
+    f1s = {}
+
 
     # Print verbose information
     if verbose:
@@ -89,7 +94,17 @@ def score(key, prediction, verbose=False):
             sys.stdout.write("{:.2%}".format(f1))
             sys.stdout.write("  #: %d" % gold)
             sys.stdout.write("\n")
+
+            precesions[relation] = prec
+            recalls[relation] = recall
+            f1s[relation] = f1
+
         print("")
+
+        print('Macro scroes: ')
+        print('Macro P: ', sum(precesions.values()) / len(precesions))
+        print('Macro R: ', sum(recalls.values()) / len(recalls))
+        print('Macro F1: ', sum(f1s.values()) / len(f1s))
 
     # Print the aggregate score
     if verbose:
@@ -106,6 +121,32 @@ def score(key, prediction, verbose=False):
     print( "Precision (micro): {:.3%}".format(prec_micro) )
     print( "   Recall (micro): {:.3%}".format(recall_micro) )
     print( "       F1 (micro): {:.3%}".format(f1_micro) )
+
+    relations = ['B-Term', 'I-Term', 'B-Definition', 'I-Definition', 'B-Ordered-Term', 'I-Ordered-Term',
+                 'B-Ordered-Definition', 'I-Ordered-Definition', 'B-Alias-Term', 'I-Alias-Term',
+                 'B-Secondary-Definition', 'I-Secondary-Definition', 'B-Referential-Term', 'I-Referential-Term',
+                 'B-Referential-Definition', 'I-Referential-Definition', 'B-Qualifier', 'I-Qualifier']
+
+    if verbose_output:
+        for relation in relations:
+            if relation in precesions:
+                print('{:.2f}'.format(precesions[relation] * 100))
+            else:
+                print('-')
+        print('############################################################')
+        for relation in relations:
+            if relation in precesions:
+                print('{:.2f}'.format(recalls[relation] * 100))
+            else:
+                print('-')
+        print('############################################################')
+        for relation in relations:
+            if relation in precesions:
+                print('{:.2f}'.format(f1s[relation] * 100))
+            else:
+                print('-')
+
+
     return prec_micro, recall_micro, f1_micro
 
 if __name__ == "__main__":
