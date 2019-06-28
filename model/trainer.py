@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
+from torchcrf import CRF
 
 from model.gcn import GCNClassifier
 from utils import constant, torch_utils
@@ -67,23 +68,15 @@ class GCNTrainer(Trainer):
         self.model = GCNClassifier(opt, emb_matrix=emb_matrix)
         self.criterion = nn.CrossEntropyLoss(reduction="none")
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
+        self.crf = CRF(self.opt['num_class'], batch_first=True)
         if opt['cuda']:
             self.model.cuda()
             self.criterion.cuda()
+            self.crf.cuda()
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
 
     def update(self, batch):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
-
-        mask = inputs[1]
-        negatives = labels.eq(1).sum().item()
-        positives = (labels.eq(1).eq(0).sum() - mask.sum()).item()
-        ratio = positives / negatives
-        mask_o = torch.Tensor(np.random.rand(*labels.shape)).cuda()
-        mask_o[mask_o < ratio] = 0.0
-        mask_o[mask_o >= ratio] = 1.0
-        mask_o = mask_o.byte() * labels.eq(1)
-        mask = mask.masked_fill(mask_o, 1.0)
 
         # step forward
         self.model.train()
@@ -92,19 +85,12 @@ class GCNTrainer(Trainer):
 
         labels = labels - 1
         labels[labels < 0] = 0
-        loss = self.criterion(logits.view(-1, logits.shape[-1]), labels.view(-1))
-        mask = mask.view(-1)
-        # final_loss = 0
-        # c = 0
-        # for i in range(len(loss)):
-        #     if mask[i] != 1.0:
-        #         final_loss += loss[i]
-        #         c += 1
-        # print(c)
-        # exit(1)
-        # loss = final_loss / c
-
-        loss = loss.masked_fill(mask, 0).mean()
+        mask = inputs[1].float()
+        mask[mask == 0.] = -1.
+        mask[mask == 1.] = 0.
+        mask[mask == -1.] = 1.
+        mask = mask.byte()
+        loss = -self.crf(logits, labels, mask=mask)
 
         loss_val = loss.item()
         # backward
@@ -116,8 +102,6 @@ class GCNTrainer(Trainer):
     def predict(self, batch, unsort=True):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
-        mask = inputs[1]
-
         orig_idx = batch[5]
         # forward
         self.model.eval()
@@ -125,35 +109,16 @@ class GCNTrainer(Trainer):
 
         labels = labels - 1
         labels[labels < 0] = 0
-        loss = self.criterion(logits.view(-1, logits.shape[-1]), labels.view(-1))
-        mask = mask.view(-1)
-        # final_loss = 0
-        # c = 0
-        # for i in range(len(loss)):
-        #     if mask[i] != 1.0:
-        #         final_loss += loss[i]
-        #         c += 1
-        # loss = final_loss / c
+        mask = inputs[1].float()
+        mask[mask == 0.] = -1.
+        mask[mask == 1.] = 0.
+        mask[mask == -1.] = 1.
+        mask = mask.byte()
+        loss = -self.crf(logits, labels, mask=mask)
 
-        loss = loss.masked_fill(mask, 0).mean()
-
-        probs = F.softmax(logits.view(-1, logits.shape[-1]), 1).data.cpu().numpy().tolist()
-        predictions = np.argmax(logits.view(-1, logits.shape[-1]).data.cpu().numpy(), axis=1).tolist()
-
-        mask = mask.view(logits.shape[0], -1)
-
-        final_predictions = []
-        final_probs = []
-        for i in range(mask.shape[0]):
-            pred = []
-            prob = []
-            for j in range(mask.shape[1]):
-                if mask[i][j] != 1.0:
-                    pred.append(predictions[i])
-                    prob.append(probs[i])
-            final_predictions.append(pred)
-            final_probs.append(prob)
+        probs = F.softmax(logits, dim=1)
+        predictions = self.crf.decode(logits, mask=mask)
 
         if unsort:
-            _, predictions, probs = [list(t) for t in zip(*sorted(zip(orig_idx, final_predictions, final_probs)))]
+            _, predictions, probs = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs)))]
         return predictions, probs, loss.item()
