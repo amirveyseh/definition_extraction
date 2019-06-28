@@ -43,8 +43,6 @@ class DataLoader(object):
         """ Preprocess the data and convert to ids. """
         processed = []
         for d in data:
-            if 'I-Qualifier-frag' in d['labels']:
-                continue
             tokens = list(d['tokens'])
             if opt['lower']:
                 tokens = [t.lower() for t in tokens]
@@ -54,7 +52,7 @@ class DataLoader(object):
             assert any([x == -1 for x in head])
             l = len(tokens)
             labels = [self.label2id[l] for l in d['labels']]
-            if self.opt['only_label'] == 1 and not self.eval:
+            if self.opt['only_label'] == 1 and self.eval:
                 if d['label'] != 'none':
                     processed += [(tokens, pos, head, labels)]
             else:
