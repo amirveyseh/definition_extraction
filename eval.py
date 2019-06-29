@@ -5,6 +5,9 @@ import random
 import argparse
 from tqdm import tqdm
 import torch
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 
 from data.loader import DataLoader
 from model.trainer import GCNTrainer
@@ -63,6 +66,23 @@ predictions = [[id2label[l+1]] for p in predictions for l in p]
 print(len(predictions))
 print(len(batch.gold()))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class==1)
+
+print('scroes from sklearn: ')
+macro_f1 = f1_score(batch.gold(), predictions, average='macro')
+micro_f1 = f1_score(batch.gold(), predictions, average='micro')
+macro_p = precision_score(batch.gold(), predictions, average='macro')
+micro_p = precision_score(batch.gold(), predictions, average='micro')
+macro_r = recall_score(batch.gold(), predictions, average='macro')
+micro_r = recall_score(batch.gold(), predictions, average='micro')
+print('micro scores: ')
+print('micro P: ', micro_p)
+print('micro R: ', micro_r)
+print('micro F1: ', micro_f1)
+print("")
+print("macro scroes: ")
+print('macro P: ', macro_p)
+print('macro R: ', macro_r)
+print('macro F1: ', macro_f1)
 print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset,p,r,f1))
 
 print("Evaluation ended.")
