@@ -15,8 +15,6 @@ POS_TO_ID = {PAD_TOKEN: 0, UNK_TOKEN: 1, 'NNP': 2, 'NN': 3, 'IN': 4, 'DT': 5, ',
 
 NEGATIVE_LABEL = 'O'
 
-# LABEL_TO_ID = {'O': 1, 'B-Term': 2, 'I-Term': 3, 'B-Definition': 4, 'I-Definition': 5, 'B-Definition-frag': 6, 'I-Definition-frag': 7, 'B-Alias-Term': 8, 'I-Alias-Term': 9, 'B-Qualifier': 10, 'I-Qualifier': 11, 'B-Definiti-frag': 12, 'I-Definiti-frag': 13, 'B-Secondary-Definition': 14, 'I-Secondary-Definition': 15, 'B-Te-frag': 16, 'I-Te-frag': 17, 'B-Term-frag': 18, 'B-Referential-Definition': 19, 'I-Referential-Definition': 20, 'B-Referential-Term': 21, 'I-Referential-Term': 22, 'B-Secondary-Definiti-frag': 23, 'I-Secondary-Definiti-frag': 24, 'B-Ordered-Term': 25, 'I-Ordered-Term': 26, 'B-Ordered-Definition': 27, 'I-Ordered-Definition': 28, 'B-Secondary-Definition-frag': 29, 'I-Secondary-Definition-frag': 30, 'B-Alias-Term-frag': 31, 'I-Alias-Term-frag': 32, 'B-Qualifier-frag': 33, 'B-Ordered-Definition-frag': 34, 'I-Ordered-Definition-frag': 35}
-# LABEL_TO_ID = {'O': 1, 'Term': 1, 'Definition': 2}
 LABEL_TO_ID = {'O': 1, 'B-Definition': 2, 'I-Definition': 3, 'B-Ordered-Term': 4, 'B-Term': 5, 'I-Term': 6, 'I-Ordered-Term': 7, 'B-Alias-Term': 8, 'I-Alias-Term': 9, 'B-Qualifier': 10, 'I-Qualifier': 11, 'B-Ordered-Definition': 12, 'B-Secondary-Definition': 13, 'I-Secondary-Definition': 14, 'B-Referential-Definition': 15, 'I-Referential-Definition': 16, 'I-Ordered-Definition': 17, 'B-Referential-Term': 18, 'I-Referential-Term': 19}
 
 
