@@ -16,6 +16,7 @@ parser.add_argument('model_dir', type=str, help='Directory of the model.')
 parser.add_argument('--model', type=str, default='best_model.pt', help='Name of the model file.')
 parser.add_argument('--data_dir', type=str, default='dataset/tacred')
 parser.add_argument('--dataset', type=str, default='test', help="Evaluate on dev or test.")
+parser.add_argument('--per_class', type=int, default=0, help="")
 
 parser.add_argument('--seed', type=int, default=1234)
 parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
@@ -61,7 +62,7 @@ for i, b in enumerate(batch_iter):
 predictions = [[id2label[l+1]] for p in predictions for l in p]
 print(len(predictions))
 print(len(batch.gold()))
-p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=True)
+p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=opt['per_class']==1)
 print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset,p,r,f1))
 
 print("Evaluation ended.")
