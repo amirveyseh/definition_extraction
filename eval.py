@@ -8,6 +8,7 @@ import torch
 from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
+from sklearn.metrics import confusion_matrix
 
 from data.loader import DataLoader
 from model.trainer import GCNTrainer
@@ -52,7 +53,7 @@ batch = DataLoader(data_file, opt['batch_size'], opt, vocab, evaluation=True)
 
 helper.print_config(opt)
 label2id = constant.LABEL_TO_ID
-id2label = dict([(v,k) for k,v in label2id.items()])
+id2label = dict([(v, k) for k, v in label2id.items()])
 
 predictions = []
 all_probs = []
@@ -62,10 +63,10 @@ for i, b in enumerate(batch_iter):
     predictions += preds
     all_probs += probs
 
-predictions = [[id2label[l+1]] for p in predictions for l in p]
+predictions = [[id2label[l + 1]] for p in predictions for l in p]
 print(len(predictions))
 print(len(batch.gold()))
-p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class==1)
+p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class == 1)
 
 print('scroes from sklearn: ')
 macro_f1 = f1_score(batch.gold(), predictions, average='macro')
@@ -83,7 +84,19 @@ print("macro scroes: ")
 print('macro P: ', macro_p)
 print('macro R: ', macro_r)
 print('macro F1: ', macro_f1)
-print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset,p,r,f1))
+print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset, p, r, f1))
+
+cm = confusion_matrix(batch.gold(), predictions, labels=['B-Term', 'I-Term', 'B-Definition', 'I-Definition',
+                                                         'B-Oredered-Term', 'I-Oredered-Term', 'B-Oredered-Definition',
+                                                         'I-Oredered-Definition', 'B-Alias-Term',
+                                                         'I-Alias-Term', 'B-Secondary-Definition',
+                                                         'I-Secondary-Definition',
+                                                         'B-Referential-Term', 'I-Referential-Term',
+                                                         'B-Referential-Definition',
+                                                         'I-Referential-Definition', 'B-Qualifier', 'I-Qualifier', 'O'])
+with open('report/confusion_matrix.txt', 'w') as file:
+    for row in cm:
+        file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
+print("confusion matrix created!")
 
 print("Evaluation ended.")
-

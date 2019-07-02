@@ -102,7 +102,7 @@ class GCNTrainer(Trainer):
     def predict(self, batch, unsort=True):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
-        orig_idx = batch[5]
+        orig_idx = batch[-1]
         # forward
         self.model.eval()
         logits = self.model(inputs)
