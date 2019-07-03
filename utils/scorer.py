@@ -7,6 +7,10 @@ Score the predictions with gold labels, using precision, recall and F1 metrics.
 import argparse
 import sys
 from collections import Counter
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import confusion_matrix
 
 from utils import constant
 
@@ -19,7 +23,10 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def score(key, prediction, verbose=False, verbose_output=False):
+def score(key, prediction, verbose=False, verbose_output=False, method='micro'):
+
+    org_gold = key.copy()
+    org_predictioins = prediction.copy()
 
     the_key = []
     the_prediction = []
@@ -146,8 +153,13 @@ def score(key, prediction, verbose=False, verbose_output=False):
             else:
                 print('-')
 
-
-    return prec_micro, recall_micro, f1_micro
+    if method == 'macro':
+        macro_f1 = f1_score(org_gold, org_predictioins, average='macro')
+        macro_p = precision_score(org_gold, org_predictioins, average='macro')
+        macro_r = recall_score(org_gold, org_predictioins, average='macro')
+        return macro_p, macro_r, macro_f1
+    else:
+        return prec_micro, recall_micro, f1_micro
 
 if __name__ == "__main__":
     # Parse the arguments from stdin
