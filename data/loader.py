@@ -19,6 +19,7 @@ class DataLoader(object):
         self.vocab = vocab
         self.eval = evaluation
         self.label2id = constant.LABEL_TO_ID
+        self.dev_eval = dev_eval
 
         with open(filename) as infile:
             data = json.load(infile)
