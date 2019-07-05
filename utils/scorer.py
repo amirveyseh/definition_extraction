@@ -131,8 +131,7 @@ def score(key, prediction, verbose=False, verbose_output=False, method='micro'):
 
     relations = ['B-Term', 'I-Term', 'B-Definition', 'I-Definition', 'B-Ordered-Term', 'I-Ordered-Term',
                  'B-Ordered-Definition', 'I-Ordered-Definition', 'B-Alias-Term', 'I-Alias-Term',
-                 'B-Secondary-Definition', 'I-Secondary-Definition', 'B-Referential-Term', 'I-Referential-Term',
-                 'B-Referential-Definition', 'I-Referential-Definition', 'B-Qualifier', 'I-Qualifier']
+                 'B-Secondary-Definition', 'I-Secondary-Definition', 'B-Qualifier', 'I-Qualifier']
 
     if verbose_output:
         for relation in relations:
