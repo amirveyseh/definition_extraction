@@ -329,28 +329,28 @@ import random
 
 #########################################################
 
-dataset = []
-
-with open('merged-clipped/train.json') as file:
-    dataset += json.load(file)
-with open('merged-clipped/dev.json') as file:
-    dataset += json.load(file)
-with open('merged-clipped/test.json') as file:
-    dataset += json.load(file)
-
-ss = []
-
-for d in dataset:
-    for l in d['labels']:
-        if l == 'B-Ordered-Term':
-            ss.append(d)
-            continue
-
-for s in ss[:10]:
-    print(s['tokens'])
-    print(s['labels'])
-    print(list(zip(s['tokens'], s['labels'])))
-    print('*********************************************')
+# dataset = []
+#
+# with open('merged-clipped/train.json') as file:
+#     dataset += json.load(file)
+# with open('merged-clipped/dev.json') as file:
+#     dataset += json.load(file)
+# with open('merged-clipped/test.json') as file:
+#     dataset += json.load(file)
+#
+# ss = []
+#
+# for d in dataset:
+#     for l in d['labels']:
+#         if l == 'B-Ordered-Term':
+#             ss.append(d)
+#             continue
+#
+# for s in ss[:10]:
+#     print(s['tokens'])
+#     print(s['labels'])
+#     print(list(zip(s['tokens'], s['labels'])))
+#     print('*********************************************')
 
 ###############################################################################
 
@@ -423,5 +423,67 @@ for s in ss[:10]:
 
 ##################################################################################
 
+# maps = {
+#     'B-Definition': 'B-Definition',
+#     'I-Definition': 'I-Definition',
+#     'B-Term': 'B-Term',
+#     'I-Term': 'I-Term',
+#     'B-Ordered-Definition': 'O',
+#     'I-Ordered-Definition': 'O',
+#     'B-Alias-Term': 'O',
+#     'I-Alias-Term': 'O',
+#     'B-Qualifier': 'O',
+#     'I-Qualifier': 'O',
+#     'B-Secondary-Definition': 'O',
+#     'I-Secondary-Definition': 'O',
+#     'B-Ordered-Term': 'O',
+#     'I-Ordered-Term': 'O',
+#     'B-Referential-Definition': 'O',
+#     'I-Referential-Definition': 'O',
+#     'B-Referential-Term': 'O',
+#     'I-Referential-Term': 'O',
+#     'O': 'O'
+# }
+#
+#
+# with open('merged-clipped/train.json') as file:
+#     dataset = json.load(file)
+#
+#
+# for d in dataset:
+#     for i, l in enumerate(d['labels']):
+#         d['labels'][i] = maps[l]
+#
+# with open('merged-clipped-7/train.json', 'w') as file:
+#     json.dump(dataset, file)
 
+#########################################################################################
 
+# dataset = []
+#
+# with open('merged-clipped-final/train.json') as file:
+#     dataset += json.load(file)
+# with open('merged-clipped-final/dev.json') as file:
+#     dataset += json.load(file)
+# with open('merged-clipped-final/test.json') as file:
+#     dataset += json.load(file)
+#
+# terms = set()
+# defs = set()
+# for i, d in enumerate(dataset):
+#     for l in d['labels']:
+#         if 'B-Term' in d['labels']:
+#             terms.add(i)
+#         if 'B-Definition' in d['labels']:
+#             defs.add(i)
+#
+# print(len(terms))
+# print(len(defs))
+#
+# both = set()
+#
+# for t in terms:
+#     if t in defs:
+#         both.add(t)
+#
+# print(len(both))
