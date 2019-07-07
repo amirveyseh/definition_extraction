@@ -129,9 +129,7 @@ def score(key, prediction, verbose=False, verbose_output=False, method='micro'):
     print( "   Recall (micro): {:.3%}".format(recall_micro) )
     print( "       F1 (micro): {:.3%}".format(f1_micro) )
 
-    relations = ['B-Term', 'I-Term', 'B-Definition', 'I-Definition', 'B-Ordered-Term', 'I-Ordered-Term',
-                 'B-Ordered-Definition', 'I-Ordered-Definition', 'B-Alias-Term', 'I-Alias-Term',
-                 'B-Secondary-Definition', 'I-Secondary-Definition', 'B-Qualifier', 'I-Qualifier']
+    relations = ['B-Term', 'I-Term', 'B-Definition', 'I-Definition', 'B-Qualifier', 'I-Qualifier']
 
     if verbose_output:
         for relation in relations:

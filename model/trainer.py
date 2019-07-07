@@ -102,6 +102,8 @@ class GCNTrainer(Trainer):
     def predict(self, batch, unsort=True):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
+        words, masks, pos, head = inputs
+
         orig_idx = batch[-1]
         # forward
         self.model.eval()
@@ -121,4 +123,4 @@ class GCNTrainer(Trainer):
 
         if unsort:
             _, predictions, probs = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs)))]
-        return predictions, probs, loss.item()
+        return predictions, probs, loss.item(), words.data.cpu().numpy().tolist()

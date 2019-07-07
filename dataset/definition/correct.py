@@ -487,3 +487,43 @@ import random
 #         both.add(t)
 #
 # print(len(both))
+
+#########################################################################################
+#
+# dataset = []
+#
+# with open('merged-clipped-final/test.json') as file:
+#     dataset += json.load(file)
+#
+# tags = defaultdict(int)
+#
+# for d in dataset:
+#     for l in d['labels']:
+#         tags[l] += 1
+#
+# print(tags)
+
+
+#######################################################################################
+
+dataset = []
+
+with open('merged-clipped-final/test.json') as file:
+    dataset += json.load(file)
+with open('merged-clipped-final/train.json') as file:
+    dataset += json.load(file)
+with open('merged-clipped-final/dev.json') as file:
+    dataset += json.load(file)
+
+tags = defaultdict(int)
+
+for d in dataset:
+    this_tags = set()
+    for l in d['labels']:
+        if l != 'O':
+            this_tags.add(l)
+
+    for t in this_tags:
+        tags[t] += 1
+
+print(tags)
