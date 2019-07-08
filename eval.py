@@ -67,6 +67,13 @@ for i, b in enumerate(batch_iter):
 
 lens = [len(word) for word in words]
 
+for p in predictions:
+    for i in range(len(p)-1):
+        if (p[i] == 2 and p[i+1] == 10) or (p[i] == 2 and p[i+1] == 9) :
+            p[i+1] = 2
+        if (p[i] == 10 and p[i+1] == 2) or (p[i] == 10 and p[i+1] == 1):
+            p[i+1] = 10
+
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
 words = [[w] for word in words for w in word]
 print(len(predictions))
