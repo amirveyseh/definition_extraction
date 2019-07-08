@@ -109,9 +109,7 @@ class GCNTrainer(Trainer):
         self.model.eval()
         logits = self.model(inputs)
 
-        print(logits.shape)
-        exit(1)
-
+        lstm_preds = torch.max(logits, 2)[1].data.cpu().numpy().tolist()
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -125,8 +123,11 @@ class GCNTrainer(Trainer):
         probs = F.softmax(logits, dim=1)
         predictions = self.crf.decode(logits, mask=mask)
 
+        for i, p in enumerate(predictions):
+            lstm_preds[i] = lstm_preds[i][:len(p)]
+
         words = words.data.cpu().numpy().tolist()
 
         if unsort:
-            _, predictions, probs, words = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, words)))]
-        return predictions, probs, loss.item(), words
+            _, predictions, probs, words, lstm_preds = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, words, lstm_preds)))]
+        return predictions, probs, loss.item(), words, lstm_preds
