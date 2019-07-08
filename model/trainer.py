@@ -121,6 +121,8 @@ class GCNTrainer(Trainer):
         probs = F.softmax(logits, dim=1)
         predictions = self.crf.decode(logits, mask=mask)
 
+        words = words.data.cpu().numpy().tolist()
+
         if unsort:
-            _, predictions, probs = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs)))]
-        return predictions, probs, loss.item(), words.data.cpu().numpy().tolist()
+            _, predictions, probs, words = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, words)))]
+        return predictions, probs, loss.item(), words

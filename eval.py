@@ -63,11 +63,15 @@ for i, b in enumerate(batch_iter):
     preds, probs, _, word = trainer.predict(b)
     predictions += preds
     all_probs += probs
-    words += [vocab.unmap(w) for w in word]
+    words += [vocab.unmap([id for id in w if id != constant.PAD_ID]) for w in word]
+
+lens = [len(word) for word in words]
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
+words = [[w] for word in words for w in word]
 print(len(predictions))
 print(len(batch.gold()))
+print(len(words))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class == 1)
 
 print('scroes from sklearn: ')
@@ -95,6 +99,39 @@ with open('report/confusion_matrix.txt', 'w') as file:
         file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
 print("confusion matrix created!")
 
-print(words[10])
+def repack(tokens, lens):
+    output = []
+    token = []
+    i = 0
+    j = 0
+    for t in tokens:
+        t = t[0]
+        if j < lens[i]:
+            token.append(t)
+        else:
+            j = 0
+            output.append(token)
+            token = []
+            token.append(t)
+            i += 1
+        j += 1
+    return output
+
+predictions = repack(predictions, lens)
+gold = repack(batch.gold(), lens)
+words = repack(words, lens)
+
+ss = []
+for i, p in enumerate(predictions):
+    for j, l in enumerate(p):
+        if l == 'I-Qualifier' and gold[i][j] == 'I-Definition':
+            ss.append({
+                'words': words[i],
+                'gold': gold[i],
+                'pred': predictions[i]
+            })
+
+print(len(ss))
+print(ss[0])
 
 print("Evaluation ended.")
