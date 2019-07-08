@@ -109,6 +109,10 @@ class GCNTrainer(Trainer):
         self.model.eval()
         logits = self.model(inputs)
 
+        print(logits.shape)
+        exit(1)
+
+
         labels = labels - 1
         labels[labels < 0] = 0
         mask = inputs[1].float()
