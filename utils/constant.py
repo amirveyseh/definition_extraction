@@ -15,7 +15,7 @@ POS_TO_ID = {PAD_TOKEN: 0, UNK_TOKEN: 1, 'NNP': 2, 'NN': 3, 'IN': 4, 'DT': 5, ',
 
 NEGATIVE_LABEL = 'O'
 
-LABEL_TO_ID = {'O': 1, 'B-Definition': 2, 'I-Definition': 3, 'B-Ordered-Term': 4, 'B-Term': 5, 'I-Term': 6, 'I-Ordered-Term': 7, 'B-Alias-Term': 8, 'I-Alias-Term': 9, 'B-Qualifier': 10, 'I-Qualifier': 11, 'B-Ordered-Definition': 12, 'B-Secondary-Definition': 13, 'I-Secondary-Definition': 14, 'B-Referential-Definition': 15, 'I-Referential-Definition': 16, 'I-Ordered-Definition': 17, 'B-Referential-Term': 18, 'I-Referential-Term': 19}
-
+# LABEL_TO_ID = {'O': 1, 'B-Definition': 2, 'I-Definition': 3, 'B-Ordered-Term': 4, 'B-Term': 5, 'I-Term': 6, 'I-Ordered-Term': 7, 'B-Alias-Term': 8, 'I-Alias-Term': 9, 'B-Qualifier': 10, 'I-Qualifier': 11, 'B-Ordered-Definition': 12, 'B-Secondary-Definition': 13, 'I-Secondary-Definition': 14, 'B-Referential-Definition': 15, 'I-Referential-Definition': 16, 'I-Ordered-Definition': 17, 'B-Referential-Term': 18, 'I-Referential-Term': 19}
+LABEL_TO_ID = {'O': 1, 'B-Term': 2, 'B-Definition': 3, 'B-Qualifier': 4, 'I-Term': 5, 'I-Qualifier': 6, 'I-Definition': 7}
 
 INFINITY_NUMBER = 1e12

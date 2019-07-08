@@ -21,7 +21,7 @@ from utils import torch_utils, scorer, constant, helper
 from utils.vocab import Vocab
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='dataset/definition/merged2-clipped')
+parser.add_argument('--data_dir', type=str, default='dataset/definition/merged-clipped-final')
 parser.add_argument('--vocab_dir', type=str, default='dataset/vocab')
 parser.add_argument('--emb_dim', type=int, default=300, help='Word embedding dimension.')
 parser.add_argument('--ner_dim', type=int, default=30, help='NER embedding dimension.')
