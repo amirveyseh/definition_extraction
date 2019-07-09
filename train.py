@@ -134,7 +134,7 @@ current_lr = opt['lr']
 
 global_step = 0
 global_start_time = time.time()
-format_str = '{}: step {}/{} (epoch {}/{}), loss = {:.6f} ({:.3f} sec/batch), lr: {:.6f}'
+format_str = '{}: step {}/{} (epoch {}/{}), loss = {:.6f}, pred_loss = {:.6f}, discr_loss = {:.6f} ({:.3f} sec/batch), lr: {:.6f}'
 max_steps = len(train_batch) * opt['num_epoch']
 
 # start training
@@ -152,7 +152,7 @@ for epoch in range(1, opt['num_epoch']+1):
         if global_step % opt['log_step'] == 0:
             duration = time.time() - start_time
             print(format_str.format(datetime.now(), global_step, max_steps, epoch,\
-                    opt['num_epoch'], loss, duration, current_lr))
+                    opt['num_epoch'], loss, pred_loss, discr_loss, duration, current_lr))
 
     # eval on dev
     print("Evaluating on dev set...")
@@ -170,9 +170,9 @@ for epoch in range(1, opt['num_epoch']+1):
 
     dev_p, dev_r, dev_f1 = scorer.score(dev_batch.gold(), predictions, method='macro')
     print("epoch {}: train_loss = {:.6f}, pred_loss = {:.6f}, disc_loss = {:.6f}, dev_loss = {:.6f}, dev_f1 = {:.4f}".format(epoch,\
-        train_loss, pred_loss, discr_loss, dev_loss, dev_f1))
+        train_loss, train_pred_loss, train_dicr_loss, dev_loss, dev_f1))
     dev_score = dev_f1
-    file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, pred_loss, discr_loss, dev_loss, dev_score, max([dev_score] + dev_score_history)))
+    file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, train_pred_loss, train_dicr_loss, dev_loss, dev_score, max([dev_score] + dev_score_history)))
 
     # save
     model_file = model_save_dir + '/checkpoint_epoch_{}.pt'.format(epoch)
