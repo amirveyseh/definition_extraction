@@ -104,7 +104,7 @@ class GCNTrainer(Trainer):
                 labels_vec[i][j] = [0 if k != l-1 else 1 for k in range(self.opt['num_class'])]
         labels_vec = Variable(torch.from_numpy(np.asarray(labels_vec))).float().cuda()
 
-        logits_vec = F.softmax(logits, dim=1)
+        logits_vec = F.softmax(logits, dim=2)
 
         pred_loss = self.adversarial_loss(self.discriminator(logits_vec, masks), gold)
 
@@ -139,6 +139,17 @@ class GCNTrainer(Trainer):
         # forward
         self.model.eval()
         logits = self.model(inputs)
+
+        # logits_vec = F.softmax(logits, dim=2)
+        # labels = labels.data.cpu().numpy().tolist()
+        # for i in range(len(labels)):
+        #     if any(l > 1 for l in labels[i]):
+        #         for j in range(len(labels[i])):
+        #             if labels[i][j] > 1:
+        #                 print(logits_vec[i][j])
+        #                 print(labels[i][j])
+        #                 exit(1)
+        # exit(1)
 
         labels = labels - 1
         labels[labels < 0] = 0
