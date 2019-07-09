@@ -125,7 +125,7 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
-        loss += 100*pred_loss
+        loss += self.opt['pred_loss']*pred_loss
 
         loss_val = loss.item()
         # backward
