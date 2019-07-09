@@ -10,6 +10,7 @@ import numpy as np
 from torchcrf import CRF
 
 from model.gcn import GCNClassifier
+from model.discriminator import Discriminator
 from utils import constant, torch_utils
 
 import random
@@ -66,14 +67,20 @@ class GCNTrainer(Trainer):
         self.opt = opt
         self.emb_matrix = emb_matrix
         self.model = GCNClassifier(opt, emb_matrix=emb_matrix)
+        self.discriminator = Discriminator(opt)
         self.criterion = nn.CrossEntropyLoss(reduction="none")
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
+        self.discr_parameters = [p for p in self.discriminator.parameters() if p.requires_grad]
         self.crf = CRF(self.opt['num_class'], batch_first=True)
+        self.adversarial_loss = torch.nn.BCELoss()
         if opt['cuda']:
             self.model.cuda()
+            self.discriminator.cuda()
             self.criterion.cuda()
             self.crf.cuda()
+            self.adversarial_loss.cuda()
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
+        self.discr_optimizer = torch_utils.get_optimizer(opt['optim'], self.discr_parameters, opt['lr'])
 
     def update(self, batch):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
@@ -81,7 +88,31 @@ class GCNTrainer(Trainer):
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
+        self.discr_optimizer.zero_grad()
+
         logits = self.model(inputs)
+
+        #### adversarial
+        _, masks, _, _ = inputs  # unpack
+
+        gold = Variable(torch.cuda.FloatTensor(labels.size(0), 1).fill_(1.0), requires_grad=False)
+        predicted = Variable(torch.cuda.FloatTensor(labels.size(0), 1).fill_(0.0), requires_grad=False)
+
+        labels_vec = labels.data.cpu().numpy().tolist()
+        for i, b in enumerate(labels_vec):
+            for j, l in enumerate(b):
+                labels_vec[i][j] = [0 if k != l-1 else 1 for k in range(self.opt['num_class'])]
+        labels_vec = Variable(torch.from_numpy(np.asarray(labels_vec))).float().cuda()
+
+        logits_vec = F.softmax(logits, dim=1)
+
+        pred_loss = self.adversarial_loss(self.discriminator(logits_vec, masks), gold)
+
+        discr_loss = (self.adversarial_loss(self.discriminator(logits_vec, masks), predicted) + self.adversarial_loss(self.discriminator(labels_vec, masks), gold)) / 2
+
+        discr_loss.backward(retain_graph=True)
+        self.discr_optimizer.step()
+        #############
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -91,6 +122,8 @@ class GCNTrainer(Trainer):
         mask[mask == -1.] = 1.
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
+
+        loss += pred_loss
 
         loss_val = loss.item()
         # backward

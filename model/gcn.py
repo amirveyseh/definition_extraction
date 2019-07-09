@@ -26,6 +26,7 @@ class GCNClassifier(nn.Module):
     def forward(self, inputs):
         outputs = self.gcn_model(inputs)
         logits = self.classifier(outputs)
+
         return logits
 
 class GCNRelationModel(nn.Module):
