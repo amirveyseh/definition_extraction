@@ -36,11 +36,13 @@ class Trainer(object):
             print("Cannot load model from {}".format(filename))
             exit()
         self.model.load_state_dict(checkpoint['model'])
+        self.discriminator.load_state_dict(checkpoint['discriminator'])
         self.opt = checkpoint['config']
 
     def save(self, filename, epoch):
         params = {
                 'model': self.model.state_dict(),
+                'discriminator': self.discriminator.state_dict(),
                 'config': self.opt,
                 }
         try:
@@ -123,14 +125,14 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
-        loss += pred_loss
+        loss += 100*pred_loss
 
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
-        return loss_val
+        return loss_val, pred_loss.item(), discr_loss.item()
 
     def predict(self, batch, unsort=True):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])

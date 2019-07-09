@@ -111,7 +111,7 @@ helper.ensure_dir(model_save_dir, verbose=True)
 # save config
 helper.save_config(opt, model_save_dir + '/config.json', verbose=True)
 vocab.save(model_save_dir + '/vocab.pkl')
-file_logger = helper.FileLogger(model_save_dir + '/' + opt['log'], header="# epoch\ttrain_loss\tdev_loss\tdev_score\tbest_dev_score")
+file_logger = helper.FileLogger(model_save_dir + '/' + opt['log'], header="# epoch\ttrain_loss\tpred_loss\tdisc_loss\tdev_loss\tdev_score\tbest_dev_score")
 
 # print model info
 helper.print_config(opt)
@@ -140,11 +140,15 @@ max_steps = len(train_batch) * opt['num_epoch']
 # start training
 for epoch in range(1, opt['num_epoch']+1):
     train_loss = 0
+    train_pred_loss = 0
+    train_dicr_loss = 0
     for i, batch in enumerate(train_batch):
         start_time = time.time()
         global_step += 1
-        loss = trainer.update(batch)
+        loss, pred_loss, discr_loss = trainer.update(batch)
         train_loss += loss
+        train_pred_loss += pred_loss
+        train_dicr_loss += discr_loss
         if global_step % opt['log_step'] == 0:
             duration = time.time() - start_time
             print(format_str.format(datetime.now(), global_step, max_steps, epoch,\
@@ -160,13 +164,15 @@ for epoch in range(1, opt['num_epoch']+1):
         dev_loss += loss
     predictions = [[id2label[l+1]] for p in predictions for l in p]
     train_loss = train_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
+    train_pred_loss = train_pred_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
+    train_dicr_loss = train_dicr_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
     dev_loss = dev_loss / dev_batch.num_examples * opt['batch_size']
 
     dev_p, dev_r, dev_f1 = scorer.score(dev_batch.gold(), predictions, method='macro')
-    print("epoch {}: train_loss = {:.6f}, dev_loss = {:.6f}, dev_f1 = {:.4f}".format(epoch,\
-        train_loss, dev_loss, dev_f1))
+    print("epoch {}: train_loss = {:.6f}, pred_loss = {:.6f}, disc_loss = {:.6f}, dev_loss = {:.6f}, dev_f1 = {:.4f}".format(epoch,\
+        train_loss, pred_loss, discr_loss, dev_loss, dev_f1))
     dev_score = dev_f1
-    file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, dev_loss, dev_score, max([dev_score] + dev_score_history)))
+    file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, pred_loss, discr_loss, dev_loss, dev_score, max([dev_score] + dev_score_history)))
 
     # save
     model_file = model_save_dir + '/checkpoint_epoch_{}.pt'.format(epoch)
