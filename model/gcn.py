@@ -15,9 +15,17 @@ class GCNClassifier(nn.Module):
     """ A wrapper classifier for GCNRelationModel. """
     def __init__(self, opt, emb_matrix=None):
         super().__init__()
+        self.opt = opt
         self.gcn_model = GCNRelationModel(opt, emb_matrix=emb_matrix)
         in_dim = opt['hidden_dim']
         self.classifier = nn.Linear(in_dim, opt['num_class'])
+
+        in_dim = opt['hidden_dim']
+        layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
+        for _ in range(self.opt['mlp_layers']-1):
+            layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
+        self.out_mlp = nn.Sequential(*layers)
+
         self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
         self.opt = opt
 
@@ -32,6 +40,9 @@ class GCNClassifier(nn.Module):
 
         pool_type = self.opt['pooling']
         out = pool(outputs, masks.unsqueeze(2), type=pool_type)
+
+        out = self.out_mlp(out)
+
         sent_logits = self.sent_classifier(out)
 
         return logits, sent_logits.squeeze()
