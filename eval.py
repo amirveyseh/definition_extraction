@@ -266,4 +266,19 @@ words = repack(words, lens)
 # print(sum(sent_bads)/len(sent_bads))
 ########################################
 
+disc_seq = []
+
+for i, p in enumerate(predictions):
+    disc_seq.append({
+        'tokens': gold[i],
+        'label': 'real'
+    })
+    disc_seq.append({
+        'tokens': p,
+        'label': 'predicted'
+    })
+
+with open('dataset/definition/discrimination/train.json', 'w') as file:
+    json.dump(disc_seq, file)
+
 print("Evaluation ended.")
