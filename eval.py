@@ -88,16 +88,18 @@ for i, b in enumerate(batch_iter):
     all_probs += probs
     sent_predictions += sent_preds
 
+lens = [len(p) for p in predictions]
+
 ########################################
 
-predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
-gold = repack(batch.gold(), lens)
-
-assert len(predictions_) == len(gold)
-
-for i, p in enumerate(sent_predictions):
-    if p == 0:
-        predictions[i] = [0]*len(predictions_[i])
+# predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
+# gold = repack(batch.gold(), lens)
+#
+# assert len(predictions_) == len(gold)
+#
+# for i, p in enumerate(sent_predictions):
+#     if p == 0:
+#         predictions[i] = [0]*len(predictions_[i])
 ########################################
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
@@ -141,5 +143,15 @@ print('sentence predicitons accuracy: ', sum([1 if sent_predictions[i] == batch.
 # print('sent p: ', p)
 # print('sent r: ', r)
 # print('sent f1: ', f1)
+
+pred_sent = []
+predictions = repack(predictions, lens)
+for p in predictions:
+    if all(l == 'O' for l in p):
+        pred_sent.append('none')
+    else:
+        pred_sent.append('definition')
+print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
+print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 
 print("Evaluation ended.")
