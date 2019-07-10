@@ -27,6 +27,26 @@ parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
 parser.add_argument('--cpu', action='store_true')
 args = parser.parse_args()
 
+def repack(tokens, lens):
+    output = []
+    token = []
+    i = 0
+    j = 0
+    for t in tokens:
+        t = t[0]
+        if j < lens[i]:
+            token.append(t)
+        else:
+            j = 0
+            output.append(token)
+            token = []
+            token.append(t)
+            i += 1
+        j += 1
+    if len(token) > 0:
+        output.append(token)
+    return output
+
 torch.manual_seed(args.seed)
 random.seed(1234)
 if args.cpu:
@@ -73,26 +93,6 @@ predictions = lstm_preds
 
 ########################################
 
-# def repack(tokens, lens):
-#     output = []
-#     token = []
-#     i = 0
-#     j = 0
-#     for t in tokens:
-#         t = t[0]
-#         if j < lens[i]:
-#             token.append(t)
-#         else:
-#             j = 0
-#             output.append(token)
-#             token = []
-#             token.append(t)
-#             i += 1
-#         j += 1
-#     if len(token) > 0:
-#         output.append(token)
-#     return output
-#
 # predictions_ = [[id2label[l+1] for l in p] for p in predictions]
 # gold = repack(batch.gold(), lens)
 # corrections = []
@@ -131,6 +131,21 @@ predictions = lstm_preds
 # print(corrections)
 ########################################
 
+########################################
+
+predictions_ = [[id2label[l+1] for l in p] for p in predictions]
+gold = repack(batch.gold(), lens)
+
+assert len(predictions_) == len(gold)
+
+for i, p in enumerate(predictions_):
+    assert len(p) == len(gold[i])
+    for k in range(len(p)):
+        if p[k] != gold[i][k] and (p[k] == 'O' or gold[i][k] == 'O') and (all(l == 'O' for l in gold[i])):
+            predictions[i][k] = label2id[gold[i][k]]-1
+
+########################################
+
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
 words = [[w] for word in words for w in word]
 print(len(predictions))
@@ -162,24 +177,6 @@ with open('report/confusion_matrix.txt', 'w') as file:
     for row in cm:
         file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
 print("confusion matrix created!")
-
-def repack(tokens, lens):
-    output = []
-    token = []
-    i = 0
-    j = 0
-    for t in tokens:
-        t = t[0]
-        if j < lens[i]:
-            token.append(t)
-        else:
-            j = 0
-            output.append(token)
-            token = []
-            token.append(t)
-            i += 1
-        j += 1
-    return output
 
 predictions = repack(predictions, lens)
 gold = repack(batch.gold(), lens)
