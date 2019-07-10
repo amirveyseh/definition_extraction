@@ -111,7 +111,7 @@ class GCNTrainer(Trainer):
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits = self.model(inputs)
+        logits, sent_logits = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0

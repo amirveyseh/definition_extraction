@@ -32,9 +32,9 @@ class GCNClassifier(nn.Module):
 
         pool_type = self.opt['pooling']
         out = pool(outputs, masks.unsqueeze(2), type=pool_type)
-        sent_logit = self.sent_classifier(out)
+        sent_logits = self.sent_classifier(out)
 
-        return logits, sent_logit.squeeze()
+        return logits, sent_logits.squeeze()
 
 class GCNRelationModel(nn.Module):
     def __init__(self, opt, emb_matrix=None):
