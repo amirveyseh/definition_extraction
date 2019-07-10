@@ -38,6 +38,7 @@ parser.set_defaults(lower=False)
 
 parser.add_argument('--ratio', type=int, default=1, help='Negative samples ratio')
 parser.add_argument('--only_label', type=int, default=0, help='')
+parser.add_argument('--sent_loss', type=float, default=10.0, help='')
 
 parser.add_argument('--prune_k', default=-1, type=int, help='Prune the dependency tree to <= K distance off the dependency path; set to -1 for no pruning.')
 parser.add_argument('--conv_l2', type=float, default=0, help='L2-weight decay on conv layers only.')
@@ -110,7 +111,7 @@ helper.ensure_dir(model_save_dir, verbose=True)
 # save config
 helper.save_config(opt, model_save_dir + '/config.json', verbose=True)
 vocab.save(model_save_dir + '/vocab.pkl')
-file_logger = helper.FileLogger(model_save_dir + '/' + opt['log'], header="# epoch\ttrain_loss\tdev_loss\tdev_score\tbest_dev_score")
+file_logger = helper.FileLogger(model_save_dir + '/' + opt['log'], header="# epoch\ttrain_loss\tsent_loss\tdev_loss\tdev_score\tbest_dev_score")
 
 # print model info
 helper.print_config(opt)
@@ -133,21 +134,23 @@ current_lr = opt['lr']
 
 global_step = 0
 global_start_time = time.time()
-format_str = '{}: step {}/{} (epoch {}/{}), loss = {:.6f} ({:.3f} sec/batch), lr: {:.6f}'
+format_str = '{}: step {}/{} (epoch {}/{}), loss = {:.6f}, sent_loss = {:.6f} ({:.3f} sec/batch), lr: {:.6f}'
 max_steps = len(train_batch) * opt['num_epoch']
 
 # start training
 for epoch in range(1, opt['num_epoch']+1):
     train_loss = 0
+    train_sent_loss = 0
     for i, batch in enumerate(train_batch):
         start_time = time.time()
         global_step += 1
-        loss = trainer.update(batch)
+        loss, sent_loss = trainer.update(batch)
         train_loss += loss
+        train_sent_loss += sent_loss
         if global_step % opt['log_step'] == 0:
             duration = time.time() - start_time
             print(format_str.format(datetime.now(), global_step, max_steps, epoch,\
-                    opt['num_epoch'], loss, duration, current_lr))
+                    opt['num_epoch'], loss, sent_loss, duration, current_lr))
 
     # eval on dev
     print("Evaluating on dev set...")
@@ -159,13 +162,14 @@ for epoch in range(1, opt['num_epoch']+1):
         dev_loss += loss
     predictions = [[id2label[l+1]] for p in predictions for l in p]
     train_loss = train_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
+    train_sent_loss = train_sent_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
     dev_loss = dev_loss / dev_batch.num_examples * opt['batch_size']
 
     dev_p, dev_r, dev_f1 = scorer.score(dev_batch.gold(), predictions, method='macro')
-    print("epoch {}: train_loss = {:.6f}, dev_loss = {:.6f}, dev_f1 = {:.4f}".format(epoch,\
-        train_loss, dev_loss, dev_f1))
+    print("epoch {}: train_loss = {:.6f}, train_sent_loss = {:.6f}, dev_loss = {:.6f}, dev_f1 = {:.4f}".format(epoch,\
+        train_loss, train_sent_loss, dev_loss, dev_f1))
     dev_score = dev_f1
-    file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, dev_loss, dev_score, max([dev_score] + dev_score_history)))
+    file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, train_sent_loss, dev_loss, dev_score, max([dev_score] + dev_score_history)))
 
     # save
     model_file = model_save_dir + '/checkpoint_epoch_{}.pt'.format(epoch)

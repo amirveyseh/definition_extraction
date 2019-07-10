@@ -18,15 +18,23 @@ class GCNClassifier(nn.Module):
         self.gcn_model = GCNRelationModel(opt, emb_matrix=emb_matrix)
         in_dim = opt['hidden_dim']
         self.classifier = nn.Linear(in_dim, opt['num_class'])
+        self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
         self.opt = opt
 
     def conv_l2(self):
         return self.gcn_model.gcn.conv_l2()
 
     def forward(self, inputs):
+        _, masks, _, _ = inputs  # unpack
+
         outputs = self.gcn_model(inputs)
         logits = self.classifier(outputs)
-        return logits
+
+        pool_type = self.opt['pooling']
+        out = pool(outputs, masks.unsqueeze(2), type=pool_type)
+        sent_logit = self.sent_classifier(out)
+
+        return logits, sent_logit.squeeze()
 
 class GCNRelationModel(nn.Module):
     def __init__(self, opt, emb_matrix=None):
