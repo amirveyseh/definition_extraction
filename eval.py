@@ -27,6 +27,26 @@ parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
 parser.add_argument('--cpu', action='store_true')
 args = parser.parse_args()
 
+def repack(tokens, lens):
+    output = []
+    token = []
+    i = 0
+    j = 0
+    for t in tokens:
+        t = t[0]
+        if j < lens[i]:
+            token.append(t)
+        else:
+            j = 0
+            output.append(token)
+            token = []
+            token.append(t)
+            i += 1
+        j += 1
+    if len(token) > 0:
+        output.append(token)
+    return output
+
 torch.manual_seed(args.seed)
 random.seed(1234)
 if args.cpu:
