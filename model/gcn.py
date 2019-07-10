@@ -16,16 +16,53 @@ class GCNClassifier(nn.Module):
     def __init__(self, opt, emb_matrix=None):
         super().__init__()
         self.gcn_model = GCNRelationModel(opt, emb_matrix=emb_matrix)
+        # in_dim = opt['hidden_dim'] + opt['label_emb']
         in_dim = opt['hidden_dim']
         self.classifier = nn.Linear(in_dim, opt['num_class'])
         self.opt = opt
 
+        # self.label_embed = Variable(torch.from_numpy(np.random.rand(opt['num_class'], opt['label_emb']))).float().cuda()
+        # self.label_start = Variable(torch.from_numpy(np.random.rand(opt['label_emb']))).float().cuda()
+
     def conv_l2(self):
         return self.gcn_model.gcn.conv_l2()
 
-    def forward(self, inputs):
+    def forward(self, inputs, labels):
         outputs = self.gcn_model(inputs)
-        logits = self.classifier(outputs)
+
+        if self.training:
+            # labels_vec = labels.data.cpu().numpy().tolist()
+            # for i, b in enumerate(labels_vec):
+            #     for j, l in enumerate(b):
+            #         labels_vec[i][j] = [0 if k != l-1 else 1 for k in range(self.opt['num_class'])]
+            # labels_vec = Variable(torch.from_numpy(np.asarray(labels_vec))).float().cuda()
+            #
+            # label_emb = torch.cat([labels_vec.matmul(self.label_embed), self.label_start.repeat(labels.shape[0]).view(labels.shape[0], 1, -1)], dim=1)[:,:labels.shape[1],:]
+            # logits = self.classifier(torch.cat([outputs, label_emb], dim=2))
+
+
+
+            logits = self.classifier(outputs)
+        else:
+            # logits = []
+            # the_output = torch.cat([outputs[:,0,:].unsqueeze(1),self.label_start.repeat(outputs.shape[0]).view(outputs.shape[0],1,-1)], dim=2)
+            # for i in range(outputs.shape[1]):
+            #     logit = self.classifier(the_output)
+            #     logits.append(logit)
+            #     logit_vec = F.softmax(logit, dim=2)
+            #     logit_emb = logit_vec.matmul(self.label_embed)
+            #     if i < outputs.shape[1]-1:
+            #         the_output = torch.cat([outputs[:,i+1,:].unsqueeze(1), logit_emb], dim=2)
+            # logits = torch.cat(logits, dim=1)
+
+
+
+
+            logits = []
+            for i in range(outputs.shape[1]):
+                logits.append(self.classifier(outputs[:,i,:].unsqueeze(1)))
+            logits = torch.cat(logits, dim=1)
+
         return logits
 
 class GCNRelationModel(nn.Module):

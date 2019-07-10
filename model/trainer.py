@@ -81,7 +81,7 @@ class GCNTrainer(Trainer):
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits = self.model(inputs)
+        logits = self.model(inputs, labels)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -105,7 +105,7 @@ class GCNTrainer(Trainer):
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits = self.model(inputs)
+        logits = self.model(inputs, None)
 
         labels = labels - 1
         labels[labels < 0] = 0
