@@ -19,6 +19,7 @@ class DataLoader(object):
         self.vocab = vocab
         self.eval = evaluation
         self.label2id = constant.LABEL_TO_ID
+        self.sent_label2id = constant.SENT_LABEL_TO_ID
 
         with open(filename) as infile:
             data = json.load(infile)
@@ -31,7 +32,9 @@ class DataLoader(object):
             random.shuffle(indices)
             data = [data[i] for i in indices]
         self.id2label = dict([(v,k) for k,v in self.label2id.items()])
-        self.labels = [[self.id2label[l]] for d in data for l in d[-1]]
+        self.sent_id2label = dict([(v,k) for k,v in self.sent_label2id.items()])
+        self.labels = [[self.id2label[l]] for d in data for l in d[-2]]
+        self.sent_labels = [self.sent_id2label[d[-1]] for d in data]
         self.num_examples = len(data)
 
         # chunk into batches
@@ -54,14 +57,17 @@ class DataLoader(object):
             labels = [self.label2id[l] for l in d['labels']]
             if self.opt['only_label'] == 1 and not self.eval:
                 if d['label'] != 'none':
-                    processed += [(tokens, pos, head, labels)]
+                    processed += [(tokens, pos, head, labels, self.sent_label2id[d['label']])]
             else:
-                processed += [(tokens, pos, head, labels)]
+                processed += [(tokens, pos, head, labels, self.sent_label2id[d['label']])]
         return processed
 
     def gold(self):
         """ Return gold labels as a list. """
         return self.labels
+
+    def sent_gold(self):
+        return self.sent_labels
 
     def __len__(self):
         return len(self.data)
@@ -75,7 +81,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 4
+        assert len(batch) == 5
 
         # sort all fields by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
@@ -95,7 +101,9 @@ class DataLoader(object):
 
         labels = get_long_tensor(batch[3], batch_size)
 
-        return (words, masks, pos, head, labels, orig_idx)
+        sent_labels = torch.FloatTensor(batch[4])
+
+        return (words, masks, pos, head, labels, sent_labels, orig_idx)
 
     def __iter__(self):
         for i in range(self.__len__()):
@@ -128,4 +136,3 @@ def word_dropout(tokens, dropout):
     """ Randomly dropout tokens (IDs) and replace them with <UNK> tokens. """
     return [constant.UNK_ID if x != constant.UNK_ID and np.random.random() < dropout \
             else x for x in tokens]
-
