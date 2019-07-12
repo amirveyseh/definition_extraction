@@ -136,13 +136,38 @@ predictions = lstm_preds
 predictions_ = [[id2label[l+1] for l in p] for p in predictions]
 gold = repack(batch.gold(), lens)
 
-assert len(predictions_) == len(gold)
+incorrects = []
+corrects = []
 
 for i, p in enumerate(predictions_):
-    assert len(p) == len(gold[i])
+    if any([l == 'B-Definition' for l in gold[i]]) and any([l == 'B-Term' for l in gold[i]]) and all(
+            gold[i][k] == p[k] for k in range(len(p))):
+        corrects.append({
+            'words': words[i],
+            'gold': gold[i],
+            'prediction': predictions_[i],
+            'gold-pred-word': list(zip(gold[i], predictions_[i], words[i])),
+            'sent': ' '.join(words[i])
+        })
     for k in range(len(p)):
-        if p[k] != gold[i][k] and (p[k] == 'O' or gold[i][k] == 'O') and (all(l == 'O' for l in gold[i])):
+        if p[k] != gold[i][k] and (p[k] == 'O' or gold[i][k] == 'O'):
+            incorrects.append({
+                'words': words[i],
+                'gold': gold[i],
+                'prediction': predictions_[i],
+                'gold-pred-word': list(zip(gold[i],predictions_[i],words[i])),
+                'sent': ' '.join(words[i])
+            })
+
             predictions[i][k] = label2id[gold[i][k]]-1
+
+displays = corrects
+
+print(len(displays))
+tt = 100
+print(displays[tt]['words'])
+print(displays[tt]['gold-pred-word'])
+
 
 ########################################
 
@@ -266,19 +291,21 @@ words = repack(words, lens)
 # print(sum(sent_bads)/len(sent_bads))
 ########################################
 
-disc_seq = []
-
-for i, p in enumerate(predictions):
-    disc_seq.append({
-        'tokens': gold[i],
-        'label': 'real'
-    })
-    disc_seq.append({
-        'tokens': p,
-        'label': 'predicted'
-    })
-
-with open('dataset/definition/discrimination/train.json', 'w') as file:
-    json.dump(disc_seq, file)
+########################################
+# disc_seq = []
+#
+# for i, p in enumerate(predictions):
+#     disc_seq.append({
+#         'tokens': gold[i],
+#         'label': 'real'
+#     })
+#     disc_seq.append({
+#         'tokens': p,
+#         'label': 'predicted'
+#     })
+#
+# with open('dataset/definition/discrimination/train.json', 'w') as file:
+#     json.dump(disc_seq, file)
+##########################################
 
 print("Evaluation ended.")
