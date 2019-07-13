@@ -21,6 +21,7 @@ class GCNClassifier(nn.Module):
         self.gcn_model = GCNRelationModel(opt, emb_matrix=emb_matrix)
         in_dim = opt['hidden_dim']
         self.classifier = nn.Linear(in_dim, opt['num_class'])
+        self.selector = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
 
         in_dim = opt['hidden_dim']
         layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
@@ -35,19 +36,19 @@ class GCNClassifier(nn.Module):
         return self.gcn_model.gcn.conv_l2()
 
     def forward(self, inputs):
-        _, masks, _, _ = inputs  # unpack
+        _, masks, _, _, _ = inputs  # unpack
 
-        outputs = self.gcn_model(inputs)
+        outputs, gcn_outputs = self.gcn_model(inputs)
         logits = self.classifier(outputs)
 
         pool_type = self.opt['pooling']
         out = pool(outputs, masks.unsqueeze(2), type=pool_type)
-
         out = self.out_mlp(out)
-
         sent_logits = self.sent_classifier(out)
 
-        return logits, sent_logits.squeeze()
+        selections = self.selector(gcn_outputs)
+
+        return logits, sent_logits.squeeze(), selections.squeeze()
 
 
 class GCNRelationModel(nn.Module):
@@ -72,6 +73,13 @@ class GCNRelationModel(nn.Module):
             layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
         self.out_mlp = nn.Sequential(*layers)
 
+        # gcn output mlp layers
+        in_dim = opt['hidden_dim']
+        layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
+        for _ in range(self.opt['mlp_layers'] - 1):
+            layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
+        self.gcn_out_mlp = nn.Sequential(*layers)
+
     def init_embeddings(self):
         if self.emb_matrix is None:
             self.emb.weight.data[1:, :].uniform_(-1.0, 1.0)
@@ -90,26 +98,19 @@ class GCNRelationModel(nn.Module):
             print("Finetune all embeddings.")
 
     def forward(self, inputs):
-        words, masks, pos, head = inputs  # unpack
+        words, masks, pos, head, adj = inputs  # unpack
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
-        # def inputs_to_tree_reps(head, words, l, prune, subj_pos, obj_pos):
-        #     trees = [head_to_tree(head[i], words[i], l[i], prune, subj_pos[i], obj_pos[i]) for i in range(len(l))]
-        #     adj = [tree_to_adj(maxlen, tree, directed=False, self_loop=False).reshape(1, maxlen, maxlen) for tree in trees]
-        #     adj = np.concatenate(adj, axis=0)
-        #     adj = torch.from_numpy(adj)
-        #     return Variable(adj.cuda()) if self.opt['cuda'] else Variable(adj)
-        #
-        # adj = inputs_to_tree_reps(head.data, words.data, l, self.opt['prune_k'], subj_pos.data, obj_pos.data)
-        h, pool_mask = self.gcn(None, inputs)
+        h, pool_mask, gcn_outputs = self.gcn(adj, inputs)
 
         # pooling
         # pool_type = self.opt['pooling']
         # h_out = pool(h, pool_mask, type=pool_type)
         # outputs = torch.cat([h_out], dim=1)
         outputs = self.out_mlp(h)
-        return outputs
+        gcn_outputs = self.gcn_out_mlp(gcn_outputs)
+        return outputs, gcn_outputs
 
 
 class GCN(nn.Module):
@@ -137,11 +138,11 @@ class GCN(nn.Module):
         self.gcn_drop = nn.Dropout(opt['gcn_dropout'])
 
         # gcn layer
-        # self.W = nn.ModuleList()
-        #
-        # for layer in range(self.layers):
-        #     input_dim = self.in_dim if layer == 0 else self.mem_dim
-        #     self.W.append(nn.Linear(input_dim, self.mem_dim))
+        self.W = nn.ModuleList()
+
+        for layer in range(self.layers):
+            input_dim = self.in_dim if layer == 0 else self.mem_dim
+            self.W.append(nn.Linear(input_dim, self.mem_dim))
 
     def conv_l2(self):
         conv_weights = []
@@ -158,7 +159,7 @@ class GCN(nn.Module):
         return rnn_outputs
 
     def forward(self, adj, inputs):
-        words, masks, pos, head = inputs  # unpack
+        words, masks, pos, head, adj = inputs  # unpack
         word_embs = self.emb(words)
         embs = [word_embs]
         if self.opt['pos_dim'] > 0:
@@ -172,23 +173,23 @@ class GCN(nn.Module):
         else:
             gcn_inputs = embs
 
-        # gcn layer
-        # denom = adj.sum(2).unsqueeze(2) + 1
-        # mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
-        # # zero out adj for ablation
-        # if self.opt.get('no_adj', False):
-        #     adj = torch.zeros_like(adj)
-        #
-        # for l in range(self.layers):
-        #     Ax = adj.bmm(gcn_inputs)
-        #     AxW = self.W[l](Ax)
-        #     AxW = AxW + self.W[l](gcn_inputs) # self loop
-        #     AxW = AxW / denom
-        #
-        #     gAxW = F.relu(AxW)
-        #     gcn_inputs = self.gcn_drop(gAxW) if l < self.layers - 1 else gAxW
+        lstm_outs = gcn_inputs.clone()
 
-        return gcn_inputs, masks.unsqueeze(2)
+        # gcn layer
+        denom = adj.sum(2).unsqueeze(2) + 1
+        mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
+
+        for l in range(self.layers):
+            Ax = adj.bmm(gcn_inputs)
+            AxW = self.W[l](Ax)
+            AxW = AxW + self.W[l](gcn_inputs) # self loop
+            AxW = AxW / denom
+
+            gAxW = F.relu(AxW)
+            gcn_inputs = self.gcn_drop(gAxW) if l < self.layers - 1 else gAxW
+
+
+        return lstm_outs, masks.unsqueeze(2), gcn_inputs
 
 
 def pool(h, mask, type='max'):

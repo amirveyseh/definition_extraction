@@ -1,5 +1,9 @@
 import json
 from collections import Counter
+from tqdm import tqdm
+
+with open('merged-clipped-final/dev.json') as file:
+    dataset = json.load(file)
 
 class Tree():
     def __init__(self, id):
@@ -34,27 +38,20 @@ def augment(node, level = 0):
         augment(child, level=level+1)
         node.descendants.extend(child.descendants)
 
-def get_path(source, destination, path = []):
+def get_path(source, destination, dep_path, debug=False):
     if source.id != destination.id:
-        path.append(source)
-        get_path(source.parent, destination)
+        dep_path.append(source)
+        get_path(source.parent, destination, dep_path, debug=debug)
     else:
-        path.append(destination)
-    return path
-
-
-
-
-with open('merged-clipped-final/test.json') as file:
-    dataset = json.load(file)
-
+        dep_path.append(destination)
+    return dep_path
 
 
 trees = []
 dep_paths = []
 new_dataset = []
 
-for d in dataset:
+for d in tqdm(dataset):
     nodes = {}
     root = Tree(-1)
     nodes[-1] = root
@@ -84,17 +81,17 @@ for d in dataset:
         term_anscestor = get_lca(root, terms)
         def_anscestor = get_lca(root, defs)
         lca = get_lca(root, [term_anscestor.id, def_anscestor.id])
-        dep_path = get_path(term_anscestor, lca)+get_path(def_anscestor, lca)
+        dep_path = get_path(term_anscestor, lca, [])+get_path(def_anscestor, lca, [])
         dep_path = list(set([n.id for n in dep_path]))
-        dep_paths.append((dep_path, d, lca.id))
-        d['lca'] = lca.id
+        assert all(id in range(-1, len(d['heads'])) for id in dep_path)
+        dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id))
+        d['dep_path'] = dep_path
         new_dataset.append(d)
-    elif count['B-Definition'] == 0 and count['B-Term'] == 0:
-        dep_paths.append((None, d, -2))
-        d['lca'] = -2
+    else:
+        d['dep_path'] = []
         new_dataset.append(d)
 
-with open('lca/test.json', 'w') as file:
+with open('lca/dev.json', 'w') as file:
     json.dump(new_dataset, file)
 
 

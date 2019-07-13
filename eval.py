@@ -75,107 +75,37 @@ helper.print_config(opt)
 label2id = constant.LABEL_TO_ID
 id2label = dict([(v, k) for k, v in label2id.items()])
 
+sent_label2id = constant.SENT_LABEL_TO_ID
+sent_id2label = dict([(v, k) for k, v in sent_label2id.items()])
+
 predictions = []
 all_probs = []
-words = []
-lstm_preds = []
+sent_predictions = []
 batch_iter = tqdm(batch)
 for i, b in enumerate(batch_iter):
-    preds, probs, _, word, lstm_pred = trainer.predict(b)
+    preds, probs, _, sent_preds = trainer.predict(b)
     predictions += preds
     all_probs += probs
-    lstm_preds += lstm_pred
-    words += [vocab.unmap([id for id in w if id != constant.PAD_ID]) for w in word]
+    sent_predictions += sent_preds
 
-lens = [len(word) for word in words]
-
-predictions = lstm_preds
+lens = [len(p) for p in predictions]
 
 ########################################
 
-# predictions_ = [[id2label[l+1] for l in p] for p in predictions]
+# predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
 # gold = repack(batch.gold(), lens)
-# corrections = []
 #
-# incorrect = 0
-# bad = 0
-# sent_bads = []
-# for i, p in enumerate(predictions_):
-#     check_incorrect = False
-#     if any([p[j] != gold[i][j] for j in range(len(p))]):
-#         incorrect += 1
-#         check_incorrect = True
-#     check_bad = False
-#     for k in range(len(p)-1):
-#         if p[k+1] == 'I-Definition' or p[k+1] == 'I-Term' or p[k+1] == 'I-Qualifier':
-#             if p[k][2:] != p[k+1][2:]:
-#                 bad += 1
-#                 check_bad = True
-#                 break
-#     if check_incorrect and check_bad:
-#         sent_incorrect = 0
-#         sent_bad = 0
-#         for k in range(len(p)):
-#             if p[k] != gold[i][k]:
-#                 sent_incorrect += 1
-#         for k in range(len(p)-1):
-#             if p[k + 1] == 'I-Definition' or p[k + 1] == 'I-Term' or p[k + 1] == 'I-Qualifier':
-#                 if p[k][2:] != p[k + 1][2:]:
-#                     sent_bad += 1
-#                     corrections.append((p[k], p[k+1], gold[i][k], gold[i][k+1]))
-#                     predictions[i][k+1] = label2id[gold[i][k+1]]-1
-#                     # predictions[i][k+1] = predictions[i][k]
-#         sent_bads.append(sent_bad/sent_incorrect)
-# print(bad/incorrect)
-# print(sum(sent_bads)/len(sent_bads))
-# print(corrections)
-########################################
-
-########################################
-
-predictions_ = [[id2label[l+1] for l in p] for p in predictions]
-gold = repack(batch.gold(), lens)
-
-incorrects = []
-corrects = []
-
-for i, p in enumerate(predictions_):
-    if any([l == 'B-Definition' for l in gold[i]]) and any([l == 'B-Term' for l in gold[i]]) and all(
-            gold[i][k] == p[k] for k in range(len(p))):
-        corrects.append({
-            'words': words[i],
-            'gold': gold[i],
-            'prediction': predictions_[i],
-            'gold-pred-word': list(zip(gold[i], predictions_[i], words[i])),
-            'sent': ' '.join(words[i])
-        })
-    for k in range(len(p)):
-        if p[k] != gold[i][k] and (p[k] == 'O' or gold[i][k] == 'O'):
-            incorrects.append({
-                'words': words[i],
-                'gold': gold[i],
-                'prediction': predictions_[i],
-                'gold-pred-word': list(zip(gold[i],predictions_[i],words[i])),
-                'sent': ' '.join(words[i])
-            })
-
-            predictions[i][k] = label2id[gold[i][k]]-1
-
-displays = corrects
-
-print(len(displays))
-tt = 100
-print(displays[tt]['words'])
-print(displays[tt]['gold-pred-word'])
-
-
+# assert len(predictions_) == len(gold)
+#
+# for i, p in enumerate(sent_predictions):
+#     if p == 0:
+#         predictions[i] = [0]*len(predictions_[i])
 ########################################
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
-words = [[w] for word in words for w in word]
+sent_predictions = [sent_id2label[p] for p in sent_predictions]
 print(len(predictions))
 print(len(batch.gold()))
-print(len(words))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class == 1)
 
 print('scroes from sklearn: ')
@@ -197,115 +127,31 @@ print('macro F1: ', macro_f1)
 print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset, p, r, f1))
 
 cm = confusion_matrix(batch.gold(), predictions, labels=['B-Term', 'I-Term', 'B-Definition', 'I-Definition',
+                                                         'B-Ordered-Term', 'I-Ordered-Term', 'B-Ordered-Definition',
+                                                         'I-Ordered-Definition', 'B-Alias-Term',
+                                                         'I-Alias-Term', 'B-Secondary-Definition',
+                                                         'I-Secondary-Definition',
                                                          'B-Qualifier', 'I-Qualifier', 'O'])
 with open('report/confusion_matrix.txt', 'w') as file:
     for row in cm:
         file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
 print("confusion matrix created!")
 
+print('sentence predicitons accuracy: ', sum([1 if sent_predictions[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
+
+# p, r, f1 = scorer.score(batch.sent_gold(), sent_predictions, verbose=True, verbose_output=args.per_class == 1, task='sent')
+# print('sent p: ', p)
+# print('sent r: ', r)
+# print('sent f1: ', f1)
+
+pred_sent = []
 predictions = repack(predictions, lens)
-gold = repack(batch.gold(), lens)
-words = repack(words, lens)
-
-########################################
-# incorrect = 0
-# correct = 0
-#
-# for p in predictions:
-#     for i in range(len(p)-1):
-#         if p[i+1] == 'I-Definition' or p[i+1] == 'I-Term' or p[i+1] == 'I-Qualifier':
-#             if p[i][2:] != p[i+1][2:]:
-#                 incorrect += 1
-#             else:
-#                 correct += 1
-# print(incorrect)
-########################################
-
-
-########################################
-# ss = []
-# for i, p in enumerate(predictions):
-#     for j, l in enumerate(p):
-#         if l == 'I-Qualifier' and gold[i][j] == 'I-Definition':
-#             ss.append({
-#                 'words': words[i],
-#                 'gold': gold[i],
-#                 'pred': predictions[i]
-#             })
-#
-# print(len(ss))
-# print(ss[0])
-########################################
-
-
-########################################
-# false_positive = 0
-# false_negative = 0
-# true_positive = 0
-# true_negative = 0
-#
-# for i, p in enumerate(predictions):
-#     if any([l != 'O' for l in gold[i]]):
-#         if any([l != 'O' for l in p]):
-#             true_positive += 1
-#         elif all([l == 'O' for l in p]):
-#             false_negative += 1
-#     elif all([l == 'O' for l in gold[i]]):
-#         if any([l != 'O' for l in p]):
-#             false_positive += 1
-#         elif all([l == 'O' for l in p]):
-#             true_negative += 1
-#
-# print(true_negative/(true_negative+false_positive))
-########################################
-
-
-########################################
-# incorrect = 0
-# bad = 0
-# sent_bads = []
-# for i, p in enumerate(predictions):
-#     check_incorrect = False
-#     if any([p[j] != gold[i][j] for j in range(len(p))]):
-#         incorrect += 1
-#         check_incorrect = True
-#     check_bad = False
-#     for k in range(len(p)-1):
-#         if p[k+1] == 'I-Definition' or p[k+1] == 'I-Term' or p[k+1] == 'I-Qualifier':
-#             if p[k][2:] != p[k+1][2:]:
-#                 bad += 1
-#                 check_bad = True
-#                 break
-#     if check_incorrect and check_bad:
-#         sent_incorrect = 0
-#         sent_bad = 0
-#         for k in range(len(p)):
-#             if p[k] != gold[i][k]:
-#                 sent_incorrect += 1
-#         for k in range(len(p)-1):
-#             if p[k + 1] == 'I-Definition' or p[k + 1] == 'I-Term' or p[k + 1] == 'I-Qualifier':
-#                 if p[k][2:] != p[k + 1][2:]:
-#                     sent_bad += 1
-#         sent_bads.append(sent_bad/sent_incorrect)
-# print(bad/incorrect)
-# print(sum(sent_bads)/len(sent_bads))
-########################################
-
-########################################
-# disc_seq = []
-#
-# for i, p in enumerate(predictions):
-#     disc_seq.append({
-#         'tokens': gold[i],
-#         'label': 'real'
-#     })
-#     disc_seq.append({
-#         'tokens': p,
-#         'label': 'predicted'
-#     })
-#
-# with open('dataset/definition/discrimination/train.json', 'w') as file:
-#     json.dump(disc_seq, file)
-##########################################
+for p in predictions:
+    if all(l == 'O' for l in p):
+        pred_sent.append('none')
+    else:
+        pred_sent.append('definition')
+print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
+print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 
 print("Evaluation ended.")

@@ -55,11 +55,19 @@ class DataLoader(object):
             assert any([x == -1 for x in head])
             l = len(tokens)
             labels = [self.label2id[l] for l in d['labels']]
+            dep_path = [0]*len(d['tokens'])
+            for i in d['dep_path']:
+                if i != -1:
+                    dep_path[i] = 1
+            adj = np.zeros((len(d['heads']),len(d['heads'])))
+            for i, h in enumerate(d['heads']):
+                adj[i][h] = 1
+                adj[h][i] = 1
             if self.opt['only_label'] == 1 and not self.eval:
                 if d['label'] != 'none':
-                    processed += [(tokens, pos, head, labels, self.sent_label2id[d['label']])]
+                    processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
             else:
-                processed += [(tokens, pos, head, labels, self.sent_label2id[d['label']])]
+                processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
         return processed
 
     def gold(self):
@@ -81,7 +89,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 5
+        assert len(batch) == 7
 
         # sort all fields by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
@@ -98,12 +106,14 @@ class DataLoader(object):
         masks = torch.eq(words, 0)
         pos = get_long_tensor(batch[1], batch_size)
         head = get_long_tensor(batch[2], batch_size)
+        dep_path = get_long_tensor(batch[3], batch_size).float()
+        adj = get_float_tensor2D(batch[4], batch_size)
 
-        labels = get_long_tensor(batch[3], batch_size)
+        labels = get_long_tensor(batch[5], batch_size)
 
-        sent_labels = torch.FloatTensor(batch[4])
+        sent_labels = torch.FloatTensor(batch[6])
 
-        return (words, masks, pos, head, labels, sent_labels, orig_idx)
+        return (words, masks, pos, head, adj, labels, sent_labels, dep_path, orig_idx)
 
     def __iter__(self):
         for i in range(self.__len__()):
@@ -124,6 +134,14 @@ def get_long_tensor(tokens_list, batch_size):
     tokens = torch.LongTensor(batch_size, token_len).fill_(constant.PAD_ID)
     for i, s in enumerate(tokens_list):
         tokens[i, :len(s)] = torch.LongTensor(s)
+    return tokens
+
+def get_float_tensor2D(tokens_list, batch_size):
+    """ Convert list of list of tokens to a padded LongTensor. """
+    token_len = max(len(x) for x in tokens_list)
+    tokens = torch.FloatTensor(batch_size, token_len, token_len).fill_(constant.PAD_ID)
+    for i, s in enumerate(tokens_list):
+        tokens[i, :len(s), :len(s)] = torch.FloatTensor(s)
     return tokens
 
 def sort_all(batch, lens):

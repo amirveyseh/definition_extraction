@@ -51,16 +51,17 @@ class Trainer(object):
 
 def unpack_batch(batch, cuda):
     if cuda:
-        inputs = [Variable(b.cuda()) for b in batch[:4]]
-        labels = Variable(batch[4].cuda())
-        sent_labels = Variable(batch[5].cuda())
+        inputs = [Variable(b.cuda()) for b in batch[:5]]
+        labels = Variable(batch[5].cuda())
+        sent_labels = Variable(batch[6].cuda())
+        dep_path = Variable(batch[7].cuda())
     else:
         print("Error")
         exit(1)
     tokens = batch[0]
     head = batch[3]
     lens = batch[1].eq(0).long().sum(1).squeeze()
-    return inputs, labels, sent_labels, tokens, head, lens
+    return inputs, labels, sent_labels, dep_path, tokens, head, lens
 
 class GCNTrainer(Trainer):
     def __init__(self, opt, emb_matrix=None):
@@ -79,12 +80,12 @@ class GCNTrainer(Trainer):
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
 
     def update(self, batch):
-        inputs, labels, sent_labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits = self.model(inputs)
+        logits, class_logits, selections = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -98,20 +99,23 @@ class GCNTrainer(Trainer):
         sent_loss = self.bc(class_logits, sent_labels)
         loss += self.opt['sent_loss'] * sent_loss
 
+        selection_loss = self.bc(selections.view(-1, 1), dep_path.view(-1, 1))
+        loss += self.opt['dep_path_loss'] * selection_loss
+
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
-        return loss_val, sent_loss.item()
+        return loss_val, sent_loss.item(), selection_loss.item()
 
     def predict(self, batch, unsort=True):
-        inputs, labels, sent_labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits = self.model(inputs)
+        logits, sent_logits, _ = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0

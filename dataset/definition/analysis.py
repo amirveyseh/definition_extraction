@@ -89,13 +89,13 @@ def augment(node, level = 0):
         augment(child, level=level+1)
         node.descendants.extend(child.descendants)
 
-def get_path(source, destination, path = []):
+def get_path(source, destination, dep_path, debug=False):
     if source.id != destination.id:
-        path.append(source)
-        get_path(source.parent, destination)
+        dep_path.append(source)
+        get_path(source.parent, destination, dep_path, debug=debug)
     else:
-        path.append(destination)
-    return path
+        dep_path.append(destination)
+    return dep_path
 
 
 trees = []
@@ -132,37 +132,20 @@ for d in tqdm(dataset):
         term_anscestor = get_lca(root, terms)
         def_anscestor = get_lca(root, defs)
         lca = get_lca(root, [term_anscestor.id, def_anscestor.id])
-        dep_path = get_path(term_anscestor, lca)+get_path(def_anscestor, lca)
+        dep_path = get_path(term_anscestor, lca, [])+get_path(def_anscestor, lca, [])
         dep_path = list(set([n.id for n in dep_path]))
-        # for p in dep_path:
-        #     if p > len(d['tokens']):
-        #         print(dep_path)
-        #         print(len(d['tokens']))
-        #         print(term_anscestor.id, d['tokens'][term_anscestor.id-2:term_anscestor.id+2], d['tokens'][term_anscestor.id])
-        #         print(def_anscestor.id, d['tokens'][def_anscestor.id-2:def_anscestor.id+2], d['tokens'][def_anscestor.id])
-        #         print(d['tokens'])
-        #         print([d['tokens'][t] for t in terms])
-        #         print([d['tokens'][t] for t in defs])
-        #         exit(1)
-        dep_paths.append((dep_path, d, def_anscestor.id))
+        assert all(id in range(-1, len(d['heads'])) for id in dep_path)
+        dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id))
 
 print(len(dep_paths))
-data = dep_paths[10]
-
-
-# print(data[0])
-# d = data[1]
-# try:
-#     print([d['tokens'][p] if p != -1 else 'ROOT' for p in data[0]])
-# except:
-#     print(len(d['tokens']))
-#     print(data[0])
-# print(list(zip(d['tokens'],d['labels'])))
-# print(' '.join(d['tokens']))
-# print(d['tokens'])
+data = dep_paths[100]
 
 
 print(data[1]['tokens'][data[2]],data[1]['tokens'][data[2]-2:data[2]+2],data[2])
+print(data[1]['tokens'][data[3]],data[1]['tokens'][data[3]-2:data[3]+2],data[3])
+print(data[1]['tokens'][data[4]],data[1]['tokens'][data[4]-2:data[4]+2],data[4])
+print(data[0])
+print([data[1]['tokens'][k] if k != -1 else 'ROOT' for k in data[0]])
 print(data[1]['tokens'])
 d = data[1]
 terms = []
