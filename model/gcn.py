@@ -20,7 +20,7 @@ class GCNClassifier(nn.Module):
         self.opt = opt
         self.gcn_model = GCNRelationModel(opt, emb_matrix=emb_matrix)
         in_dim = opt['hidden_dim']
-        self.classifier = nn.Linear(in_dim, opt['num_class'])
+        self.classifier = nn.Linear(in_dim*2, opt['num_class'])
         self.selector = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
 
         in_dim = opt['hidden_dim']
@@ -39,7 +39,7 @@ class GCNClassifier(nn.Module):
         _, masks, _, _, _ = inputs  # unpack
 
         outputs, gcn_outputs = self.gcn_model(inputs)
-        logits = self.classifier(outputs)
+        logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
 
         pool_type = self.opt['pooling']
         out = pool(outputs, masks.unsqueeze(2), type=pool_type)
