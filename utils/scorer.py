@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix
 
 from utils import constant
 
-NO_RELATION = constant.NEGATIVE_LABEL
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Score a prediction file using the gold labels.')
@@ -23,7 +23,13 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def score(key, prediction, verbose=False, verbose_output=False, method='micro'):
+def score(key, prediction, verbose=False, verbose_output=False, method='micro', task='tagging'):
+
+    if task == 'tagging':
+        NO_RELATION = constant.NEGATIVE_LABEL
+    elif task == 'dep_path':
+        NO_RELATION = 0
+
 
     org_gold = key.copy()
     org_predictioins = prediction.copy()

@@ -34,6 +34,7 @@ class DataLoader(object):
         self.id2label = dict([(v,k) for k,v in self.label2id.items()])
         self.sent_id2label = dict([(v,k) for k,v in self.sent_label2id.items()])
         self.labels = [[self.id2label[l]] for d in data for l in d[-2]]
+        self.dep_paths = [[l] for d in data for l in d[-3]]
         self.sent_labels = [self.sent_id2label[d[-1]] for d in data]
         self.num_examples = len(data)
 
@@ -65,9 +66,9 @@ class DataLoader(object):
                 adj[h][i] = 1
             if self.opt['only_label'] == 1 and not self.eval:
                 if d['label'] != 'none':
-                    processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
+                    processed += [(tokens, pos, head, adj, dep_path, labels, self.sent_label2id[d['label']])]
             else:
-                processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
+                processed += [(tokens, pos, head, adj, dep_path, labels, self.sent_label2id[d['label']])]
         return processed
 
     def gold(self):
@@ -76,6 +77,9 @@ class DataLoader(object):
 
     def sent_gold(self):
         return self.sent_labels
+
+    def dep_path_gold(self):
+        return self.dep_paths
 
     def __len__(self):
         return len(self.data)
@@ -106,8 +110,9 @@ class DataLoader(object):
         masks = torch.eq(words, 0)
         pos = get_long_tensor(batch[1], batch_size)
         head = get_long_tensor(batch[2], batch_size)
-        dep_path = get_long_tensor(batch[3], batch_size).float()
-        adj = get_float_tensor2D(batch[4], batch_size)
+        adj = get_float_tensor2D(batch[3], batch_size)
+        dep_path = get_long_tensor(batch[4], batch_size).float()
+
 
         labels = get_long_tensor(batch[5], batch_size)
 

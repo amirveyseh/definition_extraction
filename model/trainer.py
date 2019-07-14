@@ -115,7 +115,7 @@ class GCNTrainer(Trainer):
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _ = self.model(inputs)
+        logits, sent_logits, selections = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -130,7 +130,8 @@ class GCNTrainer(Trainer):
         predictions = self.crf.decode(logits, mask=mask)
 
         sent_predictions = sent_logits.round().long().data.cpu().numpy()
+        selections = selections.round().long().data.cpu().numpy()
 
         if unsort:
-            _, predictions, probs, sent_predictions = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, sent_predictions)))]
-        return predictions, probs, loss.item(), sent_predictions
+            _, predictions, probs, sent_predictions, selections = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, sent_predictions, selections)))]
+        return predictions, probs, loss.item(), sent_predictions, selections

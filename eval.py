@@ -81,12 +81,14 @@ sent_id2label = dict([(v, k) for k, v in sent_label2id.items()])
 predictions = []
 all_probs = []
 sent_predictions = []
+dep_path_predictions = []
 batch_iter = tqdm(batch)
 for i, b in enumerate(batch_iter):
-    preds, probs, _, sent_preds = trainer.predict(b)
+    preds, probs, _, sent_preds, dep_path = trainer.predict(b)
     predictions += preds
     all_probs += probs
     sent_predictions += sent_preds
+    dep_path_predictions += dep_path
 
 lens = [len(p) for p in predictions]
 
@@ -103,6 +105,7 @@ lens = [len(p) for p in predictions]
 ########################################
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
+dep_path_predictions = [[l] for p in dep_path_predictions for l in p]
 sent_predictions = [sent_id2label[p] for p in sent_predictions]
 print(len(predictions))
 print(len(batch.gold()))
@@ -153,5 +156,9 @@ for p in predictions:
         pred_sent.append('definition')
 print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
+
+print("###########")
+
+p, r, f1 = scorer.score([str(l) for l in batch.dep_path_gold()], [str(l) for l in dep_path_predictions], verbose=True, verbose_output=args.per_class == 1, task='dep_path')
 
 print("Evaluation ended.")
