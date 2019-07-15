@@ -29,6 +29,10 @@ class GCNClassifier(nn.Module):
             layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
         self.out_mlp = nn.Sequential(*layers)
 
+        self.disc = nn.Sequential(nn.Linear(opt['hidden_dim']*2, opt['hidden_dim']*2), nn.Tanh(),
+                                  nn.Linear(opt['hidden_dim']*2, opt['hidden_dim']*2), nn.Tanh(),
+                                  nn.Linear(opt['hidden_dim']*2,1), nn.Sigmoid())
+
         self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
         self.opt = opt
 
@@ -48,7 +52,15 @@ class GCNClassifier(nn.Module):
 
         selections = self.selector(gcn_outputs)
 
-        return logits, sent_logits.squeeze(), selections.squeeze()
+        pool_type = self.opt['pooling']
+        output = pool(outputs, masks.unsqueeze(2), type=pool_type)
+        gcn_output = pool(gcn_outputs, masks.unsqueeze(2), type=pool_type)
+
+
+        positive = self.disc(torch.cat([output, gcn_output], dim=1))
+        negative = self.disc(torch.cat([output, gcn_output[torch.randperm(gcn_output.shape[0])]], dim=1))
+
+        return logits, sent_logits.squeeze(), selections.squeeze(), positive, negative
 
 
 class GCNRelationModel(nn.Module):
