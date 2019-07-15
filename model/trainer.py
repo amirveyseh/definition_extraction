@@ -126,6 +126,17 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
+        # print(self.crf.transitions)
+        self.crf.transitions[0][4] = -1
+        self.crf.transitions[0][5] = -1
+        self.crf.transitions[0][6] = -1
+        self.crf.transitions[1][5] = -1
+        self.crf.transitions[1][6] = -1
+        # self.crf.transitions[2][4] = -1
+        # self.crf.transitions[2][5] = -1
+        # self.crf.transitions[3][4] = -1
+        # self.crf.transitions[3][6] = -1
+
         probs = F.softmax(logits, dim=1)
         predictions = self.crf.decode(logits, mask=mask)
 
