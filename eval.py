@@ -109,6 +109,7 @@ dep_path_predictions = [[l] for p in dep_path_predictions for l in p]
 sent_predictions = [sent_id2label[p] for p in sent_predictions]
 print(len(predictions))
 print(len(batch.gold()))
+print(len(dep_path_predictions))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class == 1)
 
 print('scroes from sklearn: ')
@@ -154,11 +155,41 @@ for p in predictions:
         pred_sent.append('none')
     else:
         pred_sent.append('definition')
-print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
-print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
+# print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
+# print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 
 print("###########")
 
-p, r, f1 = scorer.score([str(l) for l in batch.dep_path_gold()], [str(l) for l in dep_path_predictions], verbose=True, verbose_output=args.per_class == 1, task='dep_path')
+dep_path_predictions = repack(dep_path_predictions, lens)
+dep_path_gold = repack(batch.dep_path_gold(), lens)
+
+true_positives = 0
+true_negative = 0
+false_positive = 0
+false_negative = 0
+
+
+for i, sent in enumerate(dep_path_predictions):
+    for j, l in enumerate(sent):
+        if dep_path_gold[i][j] == 1:
+            if dep_path_predictions[i][j] == 1:
+                true_positives += 1
+            else:
+                false_negative += 1
+        else:
+            if dep_path_predictions[i][j] == 1:
+                false_positive += 1
+            else:
+                true_negative += 1
+p = true_positives/(true_positives+false_positive)
+r = true_positives/(true_positives+false_negative)
+f1 = 2*p*r/(p+r)
+
+
+print('precision: ', p)
+print('recall: ', r)
+print('f1: ', f1)
+
+
 
 print("Evaluation ended.")

@@ -131,6 +131,7 @@ class GCNTrainer(Trainer):
 
         sent_predictions = sent_logits.round().long().data.cpu().numpy()
         selections = selections.round().long().data.cpu().numpy()
+        selections = [selections[i][:lens[i]] for i in range(len(selections))]
 
         if unsort:
             _, predictions, probs, sent_predictions, selections = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, sent_predictions, selections)))]
