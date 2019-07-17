@@ -1,6 +1,7 @@
 import json
 from collections import Counter
 from tqdm import tqdm
+import numpy as np
 
 dataset = []
 
@@ -97,6 +98,22 @@ def get_path(source, destination, dep_path, debug=False):
         dep_path.append(destination)
     return dep_path
 
+def get_edges(root, edges):
+    for child in root.children:
+        edges.append((root.id,child.id))
+        get_edges(child, edges)
+    return edges
+
+
+def create_adj(term_root, def_root, length):
+    adj = np.zeros((length, length))
+    edges = get_edges(term_root, [])
+    edges += get_edges(def_root, [])
+    for edge in edges:
+        if edge[0] != -1:
+            adj[edge[0]][edge[1]] = 1
+            adj[edge[1]][edge[0]] = 1
+    return adj
 
 trees = []
 
@@ -135,7 +152,8 @@ for d in tqdm(dataset):
         dep_path = get_path(term_anscestor, lca, [])+get_path(def_anscestor, lca, [])
         dep_path = list(set([n.id for n in dep_path]))
         assert all(id in range(-1, len(d['heads'])) for id in dep_path)
-        dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id))
+        adj = create_adj(term_anscestor, def_anscestor, len(d['tokens']))
+        dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id, term_anscestor, def_anscestor, adj))
 
 print(len(dep_paths))
 data = dep_paths[100]
@@ -157,3 +175,18 @@ for i, l in enumerate(d['labels']):
         defs += [i]
 print([d['tokens'][t] for t in terms])
 print([d['tokens'][t] for t in defs])
+
+
+print("===========================================================================================")
+
+
+print(sum([len(t.children) for t in trees])/len(trees))
+print(max([len(t.children) for t in trees]))
+print(min([len(t.children) for t in trees]))
+
+
+print("===========================================================================================")
+
+
+
+

@@ -1,8 +1,9 @@
 import json
 from collections import Counter
 from tqdm import tqdm
+import numpy as np
 
-with open('merged-clipped-final/dev.json') as file:
+with open('merged-clipped-final/train.json') as file:
     dataset = json.load(file)
 
 class Tree():
@@ -46,6 +47,23 @@ def get_path(source, destination, dep_path, debug=False):
         dep_path.append(destination)
     return dep_path
 
+def get_edges(root, edges):
+    for child in root.children:
+        edges.append((root.id,child.id))
+        get_edges(child, edges)
+    return edges
+
+
+def create_adj(term_root, def_root, length):
+    adj = np.zeros((length, length))
+    edges = get_edges(term_root, [])
+    edges += get_edges(def_root, [])
+    for edge in edges:
+        if edge[0] != -1:
+            adj[edge[0]][edge[1]] = 1
+            adj[edge[1]][edge[0]] = 1
+    return adj
+
 
 trees = []
 dep_paths = []
@@ -84,14 +102,18 @@ for d in tqdm(dataset):
         dep_path = get_path(term_anscestor, lca, [])+get_path(def_anscestor, lca, [])
         dep_path = list(set([n.id for n in dep_path]))
         assert all(id in range(-1, len(d['heads'])) for id in dep_path)
+        adj = create_adj(term_anscestor, def_anscestor, len(d['tokens'])).tolist()
         dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id))
         d['dep_path'] = dep_path
+        d['adj'] = adj
         new_dataset.append(d)
     else:
         d['dep_path'] = []
+        adj = np.zeros((len(d['dep_path']),len(d['dep_path']))).tolist()
+        d['adj'] = adj
         new_dataset.append(d)
 
-with open('lca/dev.json', 'w') as file:
+with open('lca/train.json', 'w') as file:
     json.dump(new_dataset, file)
 
 
