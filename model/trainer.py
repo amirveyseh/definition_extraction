@@ -51,10 +51,10 @@ class Trainer(object):
 
 def unpack_batch(batch, cuda):
     if cuda:
-        inputs = [Variable(b.cuda()) for b in batch[:5]]
-        labels = Variable(batch[5].cuda())
-        sent_labels = Variable(batch[6].cuda())
-        dep_path = Variable(batch[7].cuda())
+        inputs = [Variable(b.cuda()) for b in batch[:6]]
+        labels = Variable(batch[6].cuda())
+        sent_labels = Variable(batch[7].cuda())
+        dep_path = Variable(batch[8].cuda())
     else:
         print("Error")
         exit(1)

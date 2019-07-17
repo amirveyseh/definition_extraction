@@ -36,7 +36,7 @@ class GCNClassifier(nn.Module):
         return self.gcn_model.gcn.conv_l2()
 
     def forward(self, inputs):
-        _, masks, _, _, _ = inputs  # unpack
+        _, masks, _, _, _, _ = inputs  # unpack
 
         outputs, gcn_outputs = self.gcn_model(inputs)
         logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
@@ -98,7 +98,7 @@ class GCNRelationModel(nn.Module):
             print("Finetune all embeddings.")
 
     def forward(self, inputs):
-        words, masks, pos, head, adj = inputs  # unpack
+        words, masks, pos, head, adj, surfaces = inputs  # unpack
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
@@ -122,7 +122,7 @@ class GCN(nn.Module):
         self.layers = num_layers
         self.use_cuda = opt['cuda']
         self.mem_dim = mem_dim
-        self.in_dim = opt['emb_dim'] + opt['pos_dim']
+        self.in_dim = opt['emb_dim'] + opt['pos_dim'] + opt['bert_emb_dim']
 
         self.emb, self.pos_emb = embeddings
 
@@ -144,6 +144,9 @@ class GCN(nn.Module):
             input_dim = self.in_dim if layer == 0 else self.mem_dim
             self.W.append(nn.Linear(input_dim, self.mem_dim))
 
+        # fine tune bert
+        self.fine_tune = nn.Linear(self.opt['bert_emb_dim'],self.opt['bert_emb_dim'])
+
     def conv_l2(self):
         conv_weights = []
         for w in self.W:
@@ -159,11 +162,12 @@ class GCN(nn.Module):
         return rnn_outputs
 
     def forward(self, adj, inputs):
-        words, masks, pos, head, adj = inputs  # unpack
+        words, masks, pos, head, adj, surfaces = inputs  # unpack
         word_embs = self.emb(words)
         embs = [word_embs]
         if self.opt['pos_dim'] > 0:
             embs += [self.pos_emb(pos)]
+        embs += [self.fine_tune(surfaces)]
         embs = torch.cat(embs, dim=2)
         embs = self.in_drop(embs)
 
