@@ -2,7 +2,7 @@ import json
 from collections import Counter
 from tqdm import tqdm
 
-with open('merged-clipped-final/dev.json') as file:
+with open('textbook/merged-clipped-final/test.json') as file:
     dataset = json.load(file)
 
 class Tree():
@@ -66,7 +66,7 @@ for d in tqdm(dataset):
 
     augment(root)
 
-    assert len(root.descendants) == len(d['tokens'])+1
+    assert len(root.descendants) == len(d['tokens'])+1, str(len(root.descendants))+" "+str(len(d['tokens'])+1)
 
     count = Counter(d['labels'])
     if count['B-Definition'] == 1 and count['B-Term'] == 1:
@@ -91,7 +91,7 @@ for d in tqdm(dataset):
         d['dep_path'] = []
         new_dataset.append(d)
 
-with open('lca/dev.json', 'w') as file:
+with open('textbook/merged-clipped-final/test.json', 'w') as file:
     json.dump(new_dataset, file)
 
 

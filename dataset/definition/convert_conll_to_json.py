@@ -114,31 +114,33 @@ nlp = spacy.load("en")
 
 
 ##############################################################################
-# with open('merged-clipped-final/dev.json') as file:
-#     dataset = json.load(file)
-#
-# for d in tqdm(dataset):
-#     doc = nlp(u' '.join(d['tokens']))
-#     parse = []
-#     for token in doc:
-#         head = token.head.i
-#         parse.append(head)
-#     d['heads'] = parse
-#
-# with open('merged-clipped-final/dev.json', 'w') as file:
-#     json.dump(dataset, file)
-##############################################################################
-
-
-##############################################################################
-with open('merged-clipped-final/test.json') as file:
+with open('textbook/merged-clipped-final/test.json') as file:
     dataset = json.load(file)
 
 for d in tqdm(dataset):
-    for i in range(len(d['heads'])):
-        if d['heads'][i] == i:
-            d['heads'][i] = -1
+    doc = nlp(u' '.join(d['tokens']))
+    parse = []
+    for i, token in enumerate(doc):
+        head = token.head.i
+        if i == head:
+            head = -1
+        parse.append(head)
+    d['heads'] = parse
 
-with open('merged-clipped-final/test.json', 'w') as file:
+with open('textbook/merged-clipped-final/test.json', 'w') as file:
     json.dump(dataset, file)
+##############################################################################
+
+
+##############################################################################
+# with open('merged-clipped-final/test.json') as file:
+#     dataset = json.load(file)
+#
+# for d in tqdm(dataset):
+#     for i in range(len(d['heads'])):
+#         if d['heads'][i] == i:
+#             d['heads'][i] = -1
+#
+# with open('merged-clipped-final/test.json', 'w') as file:
+#     json.dump(dataset, file)
 ##############################################################################
