@@ -3,7 +3,7 @@ from collections import Counter
 from tqdm import tqdm
 import numpy as np
 
-with open('merged-clipped-final/test.json') as file:
+with open('merged-clipped-final/train.json') as file:
     dataset = json.load(file)
 
 class Tree():
@@ -110,11 +110,11 @@ for d in tqdm(dataset):
         new_dataset.append(d)
     else:
         d['dep_path'] = []
-        adj = np.zeros((len(d['dep_path']),len(d['dep_path']))).tolist()
+        adj = np.zeros((len(d['tokens']),len(d['tokens']))).tolist()
         d['adj'] = adj
         new_dataset.append(d)
 
-with open('lca/test.json', 'w') as file:
+with open('lca/train.json', 'w') as file:
     json.dump(new_dataset, file)
 
 
