@@ -95,13 +95,14 @@ lens = [len(p) for p in predictions]
 ########################################
 
 # predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
-# gold = repack(batch.gold(), lens)
+gold = repack(batch.gold(), lens)
 #
 # assert len(predictions_) == len(gold)
-#
-# for i, p in enumerate(sent_predictions):
-#     if p == 0:
-#         predictions[i] = [0]*len(predictions_[i])
+
+for i, p in enumerate(predictions):
+    for j, l in enumerate(p):
+        if l == 6 and gold[i][j] == 'I-Qualifier':
+            predictions[i][j] = 5
 ########################################
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
