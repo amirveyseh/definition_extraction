@@ -107,12 +107,27 @@ def get_edges(root, edges):
 
 def create_adj(term_root, def_root, length):
     adj = np.zeros((length, length))
-    edges = get_edges(term_root, [])
-    edges += get_edges(def_root, [])
-    for edge in edges:
-        if edge[0] != -1:
-            adj[edge[0]][edge[1]] = 1
-            adj[edge[1]][edge[0]] = 1
+
+    ######## Tree
+    # edges = get_edges(term_root, [])
+    # edges += get_edges(def_root, [])
+    # for edge in edges:
+    #     if edge[0] != -1:
+    #         adj[edge[0]][edge[1]] = 1
+    #         adj[edge[1]][edge[0]] = 1
+
+
+    ####### Grouping
+    def_children = def_root.descendants
+    term_children = term_root.descendants
+    for child in def_children:
+        for child2 in def_children:
+            adj[child][child2] = 1
+            adj[child2][child] = 1
+    for child in term_children:
+        for child2 in term_children:
+            adj[child][child2] = 1
+            adj[child2][child] = 1
     return adj
 
 trees = []
