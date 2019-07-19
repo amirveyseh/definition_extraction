@@ -3,7 +3,7 @@ from collections import Counter
 from tqdm import tqdm
 import numpy as np
 
-with open('merged-clipped-final/test.json') as file:
+with open('lca/dev.json') as file:
     dataset = json.load(file)
 
 class Tree():
@@ -128,7 +128,7 @@ for d in tqdm(dataset):
         d['adj'] = adj
         new_dataset.append(d)
 
-with open('lca/test.json', 'w') as file:
+with open('lca0/dev.json', 'w') as file:
     json.dump(new_dataset, file)
 
 
