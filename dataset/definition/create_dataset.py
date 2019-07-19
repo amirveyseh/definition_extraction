@@ -2,7 +2,7 @@ import json
 from collections import Counter
 from tqdm import tqdm
 
-with open('textbook/merged-clipped-final/test.json') as file:
+with open('merged-clipped-final/test.json') as file:
     dataset = json.load(file)
 
 class Tree():
@@ -91,8 +91,20 @@ for d in tqdm(dataset):
         d['dep_path'] = []
         new_dataset.append(d)
 
-with open('textbook/merged-clipped-final/test.json', 'w') as file:
+with open('lca/test.json', 'w') as file:
     json.dump(new_dataset, file)
+
+
+####################################################################################################
+
+# with open("lca2/test.json") as file:
+#     test = json.load(file)
+#
+# for t in test:
+#     del t['adj']
+#
+# with open('lca/test.json', 'w') as file:
+#     json.dump(test, file)
 
 
 
