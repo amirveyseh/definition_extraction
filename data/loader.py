@@ -61,8 +61,9 @@ class DataLoader(object):
                     dep_path[i] = 1
             adj = np.zeros((len(d['heads']),len(d['heads'])))
             for i, h in enumerate(d['heads']):
-                adj[i][h] = 1
-                adj[h][i] = 1
+                if h != -1:
+                    adj[i][h] = 1
+                    adj[h][i] = 1
             if self.opt['only_label'] == 1 and not self.eval:
                 if d['label'] != 'none':
                     processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
