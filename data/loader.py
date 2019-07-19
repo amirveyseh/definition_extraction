@@ -61,7 +61,6 @@ class DataLoader(object):
                     dep_path[i] = 1
             adj = np.zeros((len(d['heads']),len(d['heads'])))
             for i, h in enumerate(d['heads']):
-                if h != -1:
                     adj[i][h] = 1
                     adj[h][i] = 1
             if self.opt['only_label'] == 1 and not self.eval:
