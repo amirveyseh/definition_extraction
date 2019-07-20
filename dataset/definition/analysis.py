@@ -4,12 +4,12 @@ from tqdm import tqdm
 
 dataset = []
 
-with open('./merged-clipped-final/train.json') as file:
-    dataset += json.load(file)
-with open('./merged-clipped-final/test.json') as file:
-    dataset += json.load(file)
-with open('./merged-clipped-final/dev.json') as file:
-    dataset += json.load(file)
+# with open('./merged-clipped-final/train.json') as file:
+#     dataset += json.load(file)
+# with open('./merged-clipped-final/test.json') as file:
+#     dataset += json.load(file)
+# with open('./merged-clipped-final/dev.json') as file:
+#     dataset += json.load(file)
 
 
 #########################################################
@@ -55,105 +55,135 @@ with open('./merged-clipped-final/dev.json') as file:
 # print(one_term_one_def/one_term)
 ###########################################################
 
+###########################################################
+# class Tree():
+#     def __init__(self, id):
+#         self.children = []
+#         self.parent = None
+#         self.text = ""
+#         self.descendants = []
+#         self.id = id
+#         self.level = 0
+#
+# def get_anscestors(node, ids):
+#     valids = []
+#     if all(id in node.descendants for id in ids):
+#         valids.append(node)
+#         for child in node.children:
+#             valids.extend(get_anscestors(child, ids))
+#     return valids
+#
+# def get_lca(node, ids):
+#     ancestors = get_anscestors(node, ids)
+#     if len(ancestors) == 0:
+#         print(ids)
+#         print(node.descendants)
+#         exit(1)
+#     return sorted(ancestors, key=lambda n: n.level)[-1]
+#
+#
+# def augment(node, level = 0):
+#     node.descendants.append(node.id)
+#     node.level = level
+#     for child in node.children:
+#         augment(child, level=level+1)
+#         node.descendants.extend(child.descendants)
+#
+# def get_path(source, destination, dep_path, debug=False):
+#     if source.id != destination.id:
+#         dep_path.append(source)
+#         get_path(source.parent, destination, dep_path, debug=debug)
+#     else:
+#         dep_path.append(destination)
+#     return dep_path
+#
+#
+# trees = []
+#
+# dep_paths = []
+#
+# for d in tqdm(dataset):
+#     nodes = {}
+#     root = Tree(-1)
+#     nodes[-1] = root
+#     for i in range(len(d['tokens'])):
+#         node = Tree(i)
+#         node.text = d['tokens'][i]
+#         nodes[i] = node
+#     for i in range(len(d['heads'])):
+#         nodes[i].parent = nodes[d['heads'][i]]
+#         nodes[d['heads'][i]].children.append(nodes[i])
+#     trees.append(root)
+#
+#     augment(root)
+#
+#     assert len(root.descendants) == len(d['tokens'])+1
+#
+#     count = Counter(d['labels'])
+#     if count['B-Definition'] == 1 and count['B-Term'] == 1:
+#         terms = []
+#         defs = []
+#         for i, l in enumerate(d['labels']):
+#             if l == 'B-Term' or l == 'I-Term':
+#                 terms += [i]
+#             if l == 'B-Definition' or l == 'I-Definition':
+#                 defs += [i]
+#
+#         term_anscestor = get_lca(root, terms)
+#         def_anscestor = get_lca(root, defs)
+#         lca = get_lca(root, [term_anscestor.id, def_anscestor.id])
+#         dep_path = get_path(term_anscestor, lca, [])+get_path(def_anscestor, lca, [])
+#         dep_path = list(set([n.id for n in dep_path]))
+#         assert all(id in range(-1, len(d['heads'])) for id in dep_path)
+#         dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id))
+#
+# print(len(dep_paths))
+# data = dep_paths[100]
+#
+#
+# print(data[1]['tokens'][data[2]],data[1]['tokens'][data[2]-2:data[2]+2],data[2])
+# print(data[1]['tokens'][data[3]],data[1]['tokens'][data[3]-2:data[3]+2],data[3])
+# print(data[1]['tokens'][data[4]],data[1]['tokens'][data[4]-2:data[4]+2],data[4])
+# print(data[0])
+# print([data[1]['tokens'][k] if k != -1 else 'ROOT' for k in data[0]])
+# print(data[1]['tokens'])
+# d = data[1]
+# terms = []
+# defs = []
+# for i, l in enumerate(d['labels']):
+#     if l == 'B-Term' or l == 'I-Term':
+#         terms += [i]
+#     if l == 'B-Definition' or l == 'I-Definition':
+#         defs += [i]
+# print([d['tokens'][t] for t in terms])
+# print([d['tokens'][t] for t in defs])
+#############################################################################
 
-class Tree():
-    def __init__(self, id):
-        self.children = []
-        self.parent = None
-        self.text = ""
-        self.descendants = []
-        self.id = id
-        self.level = 0
+with open("lca/test.json") as file:
+    test = json.load(file)
 
-def get_anscestors(node, ids):
-    valids = []
-    if all(id in node.descendants for id in ids):
-        valids.append(node)
-        for child in node.children:
-            valids.extend(get_anscestors(child, ids))
-    return valids
+with open("lca/test1.json") as file:
+    test1 = json.load(file)
 
-def get_lca(node, ids):
-    ancestors = get_anscestors(node, ids)
-    if len(ancestors) == 0:
-        print(ids)
-        print(node.descendants)
-        exit(1)
-    return sorted(ancestors, key=lambda n: n.level)[-1]
+result = []
+changes = []
 
 
-def augment(node, level = 0):
-    node.descendants.append(node.id)
-    node.level = level
-    for child in node.children:
-        augment(child, level=level+1)
-        node.descendants.extend(child.descendants)
+for i, t in enumerate(test):
+    if any(l != 'O' for l in t['labels']):
+        result.append((list(zip(t['tokens'], t['labels'])), t['labels']))
+    if any(t['labels'][j] != test1[i]['labels'][j] for j in range(len(t['labels']))):
+        changes.append((list(zip(t['tokens'], t['labels'])), t['labels'], list(zip(test1[i]['tokens'], test1[i]['labels'])), test1[i]['labels']))
 
-def get_path(source, destination, dep_path, debug=False):
-    if source.id != destination.id:
-        dep_path.append(source)
-        get_path(source.parent, destination, dep_path, debug=debug)
-    else:
-        dep_path.append(destination)
-    return dep_path
+# print(result[100][1])
+# print(result[100][0])
 
-
-trees = []
-
-dep_paths = []
-
-for d in tqdm(dataset):
-    nodes = {}
-    root = Tree(-1)
-    nodes[-1] = root
-    for i in range(len(d['tokens'])):
-        node = Tree(i)
-        node.text = d['tokens'][i]
-        nodes[i] = node
-    for i in range(len(d['heads'])):
-        nodes[i].parent = nodes[d['heads'][i]]
-        nodes[d['heads'][i]].children.append(nodes[i])
-    trees.append(root)
-
-    augment(root)
-
-    assert len(root.descendants) == len(d['tokens'])+1
-
-    count = Counter(d['labels'])
-    if count['B-Definition'] == 1 and count['B-Term'] == 1:
-        terms = []
-        defs = []
-        for i, l in enumerate(d['labels']):
-            if l == 'B-Term' or l == 'I-Term':
-                terms += [i]
-            if l == 'B-Definition' or l == 'I-Definition':
-                defs += [i]
-
-        term_anscestor = get_lca(root, terms)
-        def_anscestor = get_lca(root, defs)
-        lca = get_lca(root, [term_anscestor.id, def_anscestor.id])
-        dep_path = get_path(term_anscestor, lca, [])+get_path(def_anscestor, lca, [])
-        dep_path = list(set([n.id for n in dep_path]))
-        assert all(id in range(-1, len(d['heads'])) for id in dep_path)
-        dep_paths.append((dep_path, d, lca.id, term_anscestor.id, def_anscestor.id))
-
-print(len(dep_paths))
-data = dep_paths[100]
-
-
-print(data[1]['tokens'][data[2]],data[1]['tokens'][data[2]-2:data[2]+2],data[2])
-print(data[1]['tokens'][data[3]],data[1]['tokens'][data[3]-2:data[3]+2],data[3])
-print(data[1]['tokens'][data[4]],data[1]['tokens'][data[4]-2:data[4]+2],data[4])
-print(data[0])
-print([data[1]['tokens'][k] if k != -1 else 'ROOT' for k in data[0]])
-print(data[1]['tokens'])
-d = data[1]
-terms = []
-defs = []
-for i, l in enumerate(d['labels']):
-    if l == 'B-Term' or l == 'I-Term':
-        terms += [i]
-    if l == 'B-Definition' or l == 'I-Definition':
-        defs += [i]
-print([d['tokens'][t] for t in terms])
-print([d['tokens'][t] for t in defs])
+# print(len(changes))
+i = 40
+print(changes[i][0])
+print("====================================")
+print(changes[i][1])
+print("====================================")
+print(changes[i][2])
+print("====================================")
+print(changes[i][3])
