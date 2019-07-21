@@ -1,7 +1,7 @@
 """
 Run evaluation with saved models.
 """
-import random
+import random, json
 import argparse
 from tqdm import tqdm
 import torch
@@ -9,6 +9,7 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import confusion_matrix
+from colorama import Fore, Back, Style
 
 from data.loader import DataLoader
 from model.trainer import GCNTrainer
@@ -94,15 +95,68 @@ lens = [len(p) for p in predictions]
 
 ########################################
 
-# predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
+predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
 gold = repack(batch.gold(), lens)
-#
-# assert len(predictions_) == len(gold)
 
-for i, p in enumerate(predictions):
-    for j, l in enumerate(p):
-        if l == 6 and gold[i][j] == 'I-Qualifier':
-            predictions[i][j] = 5
+with open("dataset/definition/lca/test.json") as file:
+    test = json.load(file)
+
+labeled = []
+mis_labeled = []
+
+for i, p in enumerate(gold):
+    if any(l != 'O' for l in p):
+        d = [list(zip(test[i]['tokens'], test[i]['labels'])), test[i]['labels'], list(zip(test[i]['tokens'], predictions_[i])), predictions_[i], ' '.join(test[i]['tokens'])]
+        labeled.append(d)
+        if any(predictions_[i][k] != p[k] for k in range(len(p))):
+            mis_labeled.append(d)
+            for j, l in enumerate(gold[i]):
+                if 'Definition' in l:
+                    predictions[i][j] = label2id[l]-1
+
+# with open('dataset/definition/lca/analysis/mis_labeled.json', 'w') as file:
+#     json.dump(mis_labeled, file)
+# exit(1)
+#
+# print(len(labeled))
+# print(len(mis_labeled))
+#
+# def get_colored_text(t_l):
+#     text = ""
+#     for t in t_l:
+#         if 'Term' in t[1]:
+#             color = Fore.GREEN
+#         elif 'Definition' in t[1]:
+#             color = Fore.RED
+#         elif 'Qualifier' in t[1]:
+#             color = Fore.YELLOW
+#         else:
+#             color = Fore.WHITE
+#         text += color + t[0] + ' '
+#     return text
+#
+# i = 5
+# d_gold = mis_labeled[i]
+# print("Gold: ")
+# print(get_colored_text(mis_labeled[i][0]))
+# print(Style.RESET_ALL)
+# print("=================================================")
+# print("Prediction: ")
+# print(get_colored_text(mis_labeled[i][2]))
+# print(Style.RESET_ALL)
+#
+#
+# # print(mis_labeled[i][0])
+# # print("=================================================")
+# # print(mis_labeled[i][1])
+# # print("=================================================")
+# # print(mis_labeled[i][2])
+# # print("=================================================")
+# # print(mis_labeled[i][3])
+# # print("=================================================")
+# # print(mis_labeled[i][4])
+#
+# exit(1)
 ########################################
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
