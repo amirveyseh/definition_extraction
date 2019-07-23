@@ -145,7 +145,7 @@ class GCN(nn.Module):
             self.W.append(nn.Linear(input_dim, self.mem_dim))
 
         # fine tune bert
-        self.fine_tune = nn.Linear(self.opt['bert_emb_dim'],self.opt['bert_emb_dim'])
+        # self.fine_tune = nn.Linear(self.opt['bert_emb_dim'],self.opt['bert_emb_dim'])
 
     def conv_l2(self):
         conv_weights = []
@@ -167,8 +167,14 @@ class GCN(nn.Module):
         embs = [word_embs]
         if self.opt['pos_dim'] > 0:
             embs += [self.pos_emb(pos)]
-        embs += [self.fine_tune(surfaces)]
-        embs = torch.cat(embs, dim=2)
+        # embs += [self.fine_tune(surfaces)]
+        embs += [surfaces]
+        try:
+            embs = torch.cat(embs, dim=2)
+        except:
+            print(words.shape)
+            print(surfaces.shape)
+            exit(1)
         embs = self.in_drop(embs)
 
         # rnn layer

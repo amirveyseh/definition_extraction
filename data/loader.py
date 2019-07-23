@@ -7,13 +7,16 @@ import random
 import torch
 import numpy as np
 
-from flair.data import Sentence
-from flair.embeddings import FlairEmbeddings, BertEmbeddings, StackedEmbeddings, WordEmbeddings, ELMoEmbeddings
+from pytorch_transformers import *
 
-bert_embedding = BertEmbeddings(bert_model_or_path='bert-large-uncased', layers="-1", pooling_operation="first")
+words = []
+with open('dataset/definition/lca/bert_vocab.txt') as file:
+    lines = file.readline()
+    for l in lines:
+        words.append(l.strip())
 
-stacked_embeddings = StackedEmbeddings(
-    embeddings=[bert_embedding])
+model = BertModel.from_pretrained('bert-base-uncased')
+tokenizer = BertTokenizer('dataset/definition/lca/bert_vocab.txt', do_basic_tokenize=True, never_split=words)
 
 from utils import constant, helper, vocab
 
@@ -118,10 +121,13 @@ class DataLoader(object):
         dep_path = get_long_tensor(batch[3], batch_size).float()
         adj = get_float_tensor2D(batch[4], batch_size)
 
-        surfaces = [Sentence(' '.join(s)) for s in batch[5]]
-        for surface in surfaces:
-            stacked_embeddings.embed(surface)
-        surfaces = get_long_tensor2(surfaces, batch_size, surfaces[0][0].embedding.shape[0])
+        token_ids = [tokenizer.encode(' '.join(s)) for s in batch[5]]
+        for s in token_ids:
+            for i, t in enumerate(s):
+                if t == None:
+                    s[i] = 0
+        input_ids = torch.tensor(get_long_tensor(token_ids, batch_size))
+        surfaces = model(input_ids)[0]
 
         labels = get_long_tensor(batch[6], batch_size)
 
