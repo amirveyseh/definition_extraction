@@ -75,18 +75,16 @@ helper.print_config(opt)
 label2id = constant.LABEL_TO_ID
 id2label = dict([(v, k) for k, v in label2id.items()])
 
-sent_label2id = constant.SENT_LABEL_TO_ID
-sent_id2label = dict([(v, k) for k, v in sent_label2id.items()])
+# sent_label2id = constant.SENT_LABEL_TO_ID
+# sent_id2label = dict([(v, k) for k, v in sent_label2id.items()])
 
 predictions = []
 all_probs = []
-sent_predictions = []
 batch_iter = tqdm(batch)
 for i, b in enumerate(batch_iter):
-    preds, probs, _, sent_preds = trainer.predict(b)
+    preds, probs, _ = trainer.predict(b)
     predictions += preds
     all_probs += probs
-    sent_predictions += sent_preds
 
 lens = [len(p) for p in predictions]
 
@@ -107,7 +105,6 @@ lens = [len(p) for p in predictions]
 ########################################
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
-sent_predictions = [sent_id2label[p] for p in sent_predictions]
 print(len(predictions))
 print(len(batch.gold()))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class == 1)
@@ -136,22 +133,5 @@ with open('report/confusion_matrix.txt', 'w') as file:
     for row in cm:
         file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
 print("confusion matrix created!")
-
-print('sentence predicitons accuracy: ', sum([1 if sent_predictions[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
-
-# p, r, f1 = scorer.score(batch.sent_gold(), sent_predictions, verbose=True, verbose_output=args.per_class == 1, task='sent')
-# print('sent p: ', p)
-# print('sent r: ', r)
-# print('sent f1: ', f1)
-
-pred_sent = []
-predictions = repack(predictions, lens)
-for p in predictions:
-    if all(l == 'O' for l in p):
-        pred_sent.append('none')
-    else:
-        pred_sent.append('definition')
-print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
-print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 
 print("Evaluation ended.")

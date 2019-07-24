@@ -19,7 +19,6 @@ class DataLoader(object):
         self.vocab = vocab
         self.eval = evaluation
         self.label2id = constant.LABEL_TO_ID
-        self.sent_label2id = constant.SENT_LABEL_TO_ID
 
         with open(filename) as infile:
             data = json.load(infile)
@@ -32,9 +31,7 @@ class DataLoader(object):
             random.shuffle(indices)
             data = [data[i] for i in indices]
         self.id2label = dict([(v,k) for k,v in self.label2id.items()])
-        self.sent_id2label = dict([(v,k) for k,v in self.sent_label2id.items()])
-        self.labels = [[self.id2label[l]] for d in data for l in d[-2]]
-        self.sent_labels = [self.sent_id2label[d[-1]] for d in data]
+        self.labels = [[self.id2label[l]] for d in data for l in d[-1]]
         self.num_examples = len(data)
 
         # chunk into batches
@@ -51,31 +48,21 @@ class DataLoader(object):
                 tokens = [t.lower() for t in tokens]
             tokens = map_to_ids(tokens, vocab.word2id)
             pos = map_to_ids(d['pos'], constant.POS_TO_ID)
-            head = [int(x) for x in d['heads']]
+            head = [int(x) for x in d['head']]
             assert any([x == -1 for x in head])
             l = len(tokens)
             labels = [self.label2id[l] for l in d['labels']]
-            dep_path = [0]*len(d['tokens'])
-            for i in d['dep_path']:
-                if i != -1:
-                    dep_path[i] = 1
-            adj = np.zeros((len(d['heads']),len(d['heads'])))
-            for i, h in enumerate(d['heads']):
+            adj = np.zeros((len(d['head']),len(d['head'])))
+            for i, h in enumerate(d['head']):
                     adj[i][h] = 1
                     adj[h][i] = 1
-            if self.opt['only_label'] == 1 and not self.eval:
-                if d['label'] != 'none':
-                    processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
-            else:
-                processed += [(tokens, pos, head, dep_path, adj, labels, self.sent_label2id[d['label']])]
+            processed += [(tokens, pos, head, adj, labels)]
+
         return processed
 
     def gold(self):
         """ Return gold labels as a list. """
         return self.labels
-
-    def sent_gold(self):
-        return self.sent_labels
 
     def __len__(self):
         return len(self.data)
@@ -89,7 +76,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 7
+        assert len(batch) == 5
 
         # sort all fields by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
@@ -106,14 +93,11 @@ class DataLoader(object):
         masks = torch.eq(words, 0)
         pos = get_long_tensor(batch[1], batch_size)
         head = get_long_tensor(batch[2], batch_size)
-        dep_path = get_long_tensor(batch[3], batch_size).float()
-        adj = get_float_tensor2D(batch[4], batch_size)
+        adj = get_float_tensor2D(batch[3], batch_size)
 
-        labels = get_long_tensor(batch[5], batch_size)
+        labels = get_long_tensor(batch[4], batch_size)
 
-        sent_labels = torch.FloatTensor(batch[6])
-
-        return (words, masks, pos, head, adj, labels, sent_labels, dep_path, orig_idx)
+        return (words, masks, pos, head, adj, labels, orig_idx)
 
     def __iter__(self):
         for i in range(self.__len__()):

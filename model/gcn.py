@@ -21,15 +21,7 @@ class GCNClassifier(nn.Module):
         self.gcn_model = GCNRelationModel(opt, emb_matrix=emb_matrix)
         in_dim = opt['hidden_dim']
         self.classifier = nn.Linear(in_dim*2, opt['num_class'])
-        self.selector = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
 
-        in_dim = opt['hidden_dim']
-        layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
-        for _ in range(self.opt['mlp_layers'] - 1):
-            layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
-        self.out_mlp = nn.Sequential(*layers)
-
-        self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
         self.opt = opt
 
     def conv_l2(self):
@@ -41,14 +33,7 @@ class GCNClassifier(nn.Module):
         outputs, gcn_outputs = self.gcn_model(inputs)
         logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
 
-        pool_type = self.opt['pooling']
-        out = pool(outputs, masks.unsqueeze(2), type=pool_type)
-        out = self.out_mlp(out)
-        sent_logits = self.sent_classifier(out)
-
-        selections = self.selector(gcn_outputs)
-
-        return logits, sent_logits.squeeze(), selections.squeeze()
+        return logits
 
 
 class GCNRelationModel(nn.Module):
@@ -174,7 +159,7 @@ class GCN(nn.Module):
             gcn_inputs = embs
 
         lstm_outs = gcn_inputs.clone()
-
+        # gcn_inputs = embs
         # gcn layer
         denom = adj.sum(2).unsqueeze(2) + 1
         mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)

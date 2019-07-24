@@ -22,7 +22,7 @@ from utils.vocab import Vocab
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, default='dataset/edit_request')
-parser.add_argument('--vocab_dir', type=str, default='dataset/edit_request/vocab')
+parser.add_argument('--vocab_dir', type=str, default='dataset/edit_request')
 parser.add_argument('--emb_dim', type=int, default=300, help='Word embedding dimension.')
 parser.add_argument('--ner_dim', type=int, default=30, help='NER embedding dimension.')
 parser.add_argument('--pos_dim', type=int, default=30, help='POS embedding dimension.')
@@ -37,7 +37,6 @@ parser.add_argument('--no-lower', dest='lower', action='store_false')
 parser.set_defaults(lower=False)
 
 parser.add_argument('--ratio', type=int, default=1, help='Negative samples ratio')
-parser.add_argument('--only_label', type=int, default=0, help='')
 parser.add_argument('--sent_loss', type=float, default=100.0, help='')
 parser.add_argument('--dep_path_loss', type=float, default=100.0, help='')
 
@@ -160,7 +159,7 @@ for epoch in range(1, opt['num_epoch']+1):
     predictions = []
     dev_loss = 0
     for i, batch in enumerate(dev_batch):
-        preds, _, loss, _ = trainer.predict(batch)
+        preds, _, loss = trainer.predict(batch)
         predictions += preds
         dev_loss += loss
     predictions = [[id2label[l+1]] for p in predictions for l in p]

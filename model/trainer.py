@@ -53,15 +53,13 @@ def unpack_batch(batch, cuda):
     if cuda:
         inputs = [Variable(b.cuda()) for b in batch[:5]]
         labels = Variable(batch[5].cuda())
-        sent_labels = Variable(batch[6].cuda())
-        dep_path = Variable(batch[7].cuda())
     else:
         print("Error")
         exit(1)
     tokens = batch[0]
     head = batch[3]
     lens = batch[1].eq(0).long().sum(1).squeeze()
-    return inputs, labels, sent_labels, dep_path, tokens, head, lens
+    return inputs, labels, tokens, head, lens
 
 class GCNTrainer(Trainer):
     def __init__(self, opt, emb_matrix=None):
@@ -80,12 +78,12 @@ class GCNTrainer(Trainer):
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
 
     def update(self, batch):
-        inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections = self.model(inputs)
+        logits = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -95,27 +93,21 @@ class GCNTrainer(Trainer):
         mask[mask == -1.] = 1.
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
-
-        sent_loss = self.bc(class_logits, sent_labels)
-        loss += self.opt['sent_loss'] * sent_loss
-
-        selection_loss = self.bc(selections.view(-1, 1), dep_path.view(-1, 1))
-        loss += self.opt['dep_path_loss'] * selection_loss
 
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
-        return loss_val, sent_loss.item(), selection_loss.item()
+        return loss_val, loss_val, loss_val
 
     def predict(self, batch, unsort=True):
-        inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _ = self.model(inputs)
+        logits = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -126,17 +118,39 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
-        self.crf.transitions[0][4] = -1
-        self.crf.transitions[0][5] = -1
-        self.crf.transitions[0][6] = -1
-        self.crf.transitions[1][5] = -1
-        self.crf.transitions[1][6] = -1
+        self.crf.transitions[2][3] = 1
+        self.crf.transitions[2][5] = 1
+        self.crf.transitions[2][7] = 1
+        self.crf.transitions[2][8] = 1
+        self.crf.transitions[0][3] = 1
+        self.crf.transitions[0][4] = 1
+        self.crf.transitions[0][8] = 1
+        # self.crf.transitions[1][3] = 1
+        # self.crf.transitions[1][4] = 1
+        # self.crf.transitions[1][7] = 1
+        self.crf.transitions[5][3] = 1
+        self.crf.transitions[5][6] = 1
+        self.crf.transitions[5][7] = 1
+        self.crf.transitions[5][8] = 1
+        # self.crf.transitions[6][4] = 1
+        # self.crf.transitions[6][7] = 1
+        # self.crf.transitions[6][8] = 1
+        self.crf.transitions[3][4] = 1
+        self.crf.transitions[3][7] = 1
+        self.crf.transitions[3][8] = 1
+        self.crf.transitions[4][3] = 1
+        self.crf.transitions[4][7] = 1
+        self.crf.transitions[4][8] = 1
+        self.crf.transitions[7][3] = 1
+        self.crf.transitions[7][4] = 1
+        self.crf.transitions[7][8] = 1
+        self.crf.transitions[8][3] = 1
+        self.crf.transitions[8][4] = 1
+        self.crf.transitions[8][7] = 1
 
         probs = F.softmax(logits, dim=1)
         predictions = self.crf.decode(logits, mask=mask)
 
-        sent_predictions = sent_logits.round().long().data.cpu().numpy()
-
         if unsort:
-            _, predictions, probs, sent_predictions = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, sent_predictions)))]
-        return predictions, probs, loss.item(), sent_predictions
+            _, predictions, probs = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs)))]
+        return predictions, probs, loss.item()
