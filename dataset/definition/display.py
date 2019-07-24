@@ -3,7 +3,7 @@ from spacy import displacy
 
 nlp = spacy.load("en")
 
-sentence = ['"', 'VWAP', '"', 'means', ',', 'for', 'any', 'Business', 'Day', ',', 'the', 'volume', '-', 'weighted', 'average', 'price', 'per', 'share', 'of', 'Parent', 'Common', 'Stock', 'on', 'the', 'NYSE', '(', 'as', 'reported', 'by', 'Bloomberg', 'L.P', '.', 'or', ',', 'if', 'not', 'reported', 'therein', ',', 'in', 'another', 'authoritative', 'source', 'mutually', 'selected', 'by', 'the', 'Company', 'and', 'Parent', ')', '.']
+sentence = ["BOS", "i", "would", "add", "more", "focus", "to", "the", "front", "area", "and", "make", "the", "background", "more", "blurry", "where", "the", "girl", "is", "at", "EOS"]
 
 doc = nlp(u' '.join(sentence))
 print(len(doc))

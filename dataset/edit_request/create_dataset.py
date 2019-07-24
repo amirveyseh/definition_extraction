@@ -59,14 +59,16 @@ for d in tqdm(dataset):
         node = Tree(i)
         node.text = d['tokens'][i]
         nodes[i] = node
-    for i in range(len(d['heads'])):
-        nodes[i].parent = nodes[d['heads'][i]]
-        nodes[d['heads'][i]].children.append(nodes[i])
+    for i in range(len(d['head'])):
+        nodes[i].parent = nodes[d['head'][i]]
+        nodes[d['head'][i]].children.append(nodes[i])
     trees.append(root)
 
     augment(root)
 
     assert len(root.descendants) == len(d['tokens'])+1, str(len(root.descendants))+" "+str(len(d['tokens'])+1)
+
+
 
     count = Counter(d['labels'])
     if count['B-Definition'] == 1 and count['B-Term'] == 1:

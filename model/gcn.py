@@ -159,7 +159,7 @@ class GCN(nn.Module):
             gcn_inputs = embs
 
         lstm_outs = gcn_inputs.clone()
-        # gcn_inputs = embs
+
         # gcn layer
         denom = adj.sum(2).unsqueeze(2) + 1
         mask = (adj.sum(2) + adj.sum(1)).eq(0).unsqueeze(2)
