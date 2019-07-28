@@ -95,24 +95,24 @@ lens = [len(p) for p in predictions]
 
 ########################################
 
-predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
-gold = repack(batch.gold(), lens)
-
-with open("dataset/definition/lca/test.json") as file:
-    test = json.load(file)
-
-labeled = []
-mis_labeled = []
-
-for i, p in enumerate(gold):
-    if any(l != 'O' for l in p):
-        d = [list(zip(test[i]['tokens'], test[i]['labels'])), test[i]['labels'], list(zip(test[i]['tokens'], predictions_[i])), predictions_[i], ' '.join(test[i]['tokens'])]
-        labeled.append(d)
-        if any(predictions_[i][k] != p[k] for k in range(len(p))):
-            mis_labeled.append(d)
-            for j, l in enumerate(gold[i]):
-                if 'Definition' in l:
-                    predictions[i][j] = label2id[l]-1
+# predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
+# gold = repack(batch.gold(), lens)
+#
+# with open("dataset/definition/lca/test.json") as file:
+#     test = json.load(file)
+#
+# labeled = []
+# mis_labeled = []
+#
+# for i, p in enumerate(gold):
+#     if any(l != 'O' for l in p):
+#         d = [list(zip(test[i]['tokens'], test[i]['labels'])), test[i]['labels'], list(zip(test[i]['tokens'], predictions_[i])), predictions_[i], ' '.join(test[i]['tokens'])]
+#         labeled.append(d)
+#         if any(predictions_[i][k] != p[k] for k in range(len(p))):
+#             mis_labeled.append(d)
+#             for j, l in enumerate(gold[i]):
+#                 if 'Definition' in l:
+#                     predictions[i][j] = label2id[l]-1
 
 # with open('dataset/definition/lca/analysis/mis_labeled.json', 'w') as file:
 #     json.dump(mis_labeled, file)
