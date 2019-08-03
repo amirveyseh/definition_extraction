@@ -1,6 +1,7 @@
 import glob, json
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+from collections import Counter
 
 import spacy
 nlp = spacy.load("en")
@@ -185,16 +186,45 @@ nlp = spacy.load("en")
 
 ###########################################################################################################
 
+# with open('dataset2.json') as file:
+#     dataset = json.load(file)
+#
+# # maxlen = 0
+# #
+# # for d in dataset:
+# #     if len(d['tokens']) > maxlen:
+# #         maxlen = len(d['tokens'])
+# #
+# # print(maxlen)
+#
+#
+# print(len(dataset))
+
+################################################################################################
+
 with open('dataset2.json') as file:
     dataset = json.load(file)
 
-# maxlen = 0
-#
-# for d in dataset:
-#     if len(d['tokens']) > maxlen:
-#         maxlen = len(d['tokens'])
-#
-# print(maxlen)
+td = []
 
+good = 0
+total = 0
 
-print(len(dataset))
+for d in dataset:
+    counter = Counter(d['labels'])
+    if counter['B-Term'] > 0 or counter['B-Definition'] > 0:
+        total += 1
+    if counter['B-Term'] == 1 and counter['B-Definition'] == 1:
+        good += 1
+        term = ''
+        defs = ''
+        for i, l in enumerate(d['labels']):
+            if 'Term' in l:
+                term += ' ' + d['tokens'][i]
+            if 'Definition' in l:
+                defs += ' ' + d['tokens'][i]
+        td.append([term, defs])
+
+print(good/total)
+for term_def in td:
+    print(term_def)

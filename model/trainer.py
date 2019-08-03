@@ -51,10 +51,10 @@ class Trainer(object):
 
 def unpack_batch(batch, cuda):
     if cuda:
-        inputs = [Variable(b.cuda()) for b in batch[:5]]
-        labels = Variable(batch[5].cuda())
-        sent_labels = Variable(batch[6].cuda())
-        dep_path = Variable(batch[7].cuda())
+        inputs = [Variable(b.cuda()) for b in batch[:7]]
+        labels = Variable(batch[7].cuda())
+        sent_labels = Variable(batch[8].cuda())
+        dep_path = Variable(batch[9].cuda())
     else:
         print("Error")
         exit(1)
@@ -85,7 +85,7 @@ class GCNTrainer(Trainer):
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections = self.model(inputs)
+        logits, class_logits, selections, term_def, not_term_def = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -102,6 +102,12 @@ class GCNTrainer(Trainer):
         selection_loss = self.bc(selections.view(-1, 1), dep_path.view(-1, 1))
         loss += self.opt['dep_path_loss'] * selection_loss
 
+        term_def_loss = -self.opt['consistency_loss'] * (term_def-not_term_def)
+        loss += term_def_loss
+        #loss += self.opt['consistency_loss'] * not_term_def
+        print(term_def_loss.item())
+
+
         loss_val = loss.item()
         # backward
         loss.backward()
@@ -115,7 +121,7 @@ class GCNTrainer(Trainer):
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _ = self.model(inputs)
+        logits, sent_logits, _, _, _ = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0

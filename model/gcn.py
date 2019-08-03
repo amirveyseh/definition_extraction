@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
+import random
 
 from model.tree import Tree, head_to_tree, tree_to_adj
 from utils import constant, torch_utils
@@ -36,7 +37,7 @@ class GCNClassifier(nn.Module):
         return self.gcn_model.gcn.conv_l2()
 
     def forward(self, inputs):
-        _, masks, _, _, _ = inputs  # unpack
+        _, masks, _, _, terms, defs, _ = inputs  # unpack
 
         outputs, gcn_outputs = self.gcn_model(inputs)
         logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
@@ -46,9 +47,30 @@ class GCNClassifier(nn.Module):
         out = self.out_mlp(out)
         sent_logits = self.sent_classifier(out)
 
+        terms_out = pool(F.softmax(outputs), terms.unsqueeze(2).byte(), type=pool_type)
+        defs_out = pool(F.softmax(outputs), defs.unsqueeze(2).byte(), type=pool_type)
+        term_def = (terms_out * defs_out).sum(1)
+        has_term_def = (terms+defs).sum(1)
+        has_term_def[has_term_def>0] = 1
+        has_term_def_ind = []
+        for i in range(masks.shape[0]):
+            if has_term_def[i] > 0:
+                has_term_def_ind.append(i)
+        random.shuffle(has_term_def_ind)
+        perm = list(range(masks.shape[0]))
+        k = 0
+        for i in range(masks.shape[0]):
+            if i in has_term_def_ind:
+                perm[i] = has_term_def_ind[k]
+                k += 1
+        not_term_def = (terms_out * defs_out[perm]).sum(1)
+
+        term_def = term_def.sum() / has_term_def.sum()
+        not_term_def = not_term_def.sum() / has_term_def.sum()
+
         selections = self.selector(gcn_outputs)
 
-        return logits, sent_logits.squeeze(), selections.squeeze()
+        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def
 
 
 class GCNRelationModel(nn.Module):
@@ -98,7 +120,7 @@ class GCNRelationModel(nn.Module):
             print("Finetune all embeddings.")
 
     def forward(self, inputs):
-        words, masks, pos, head, adj = inputs  # unpack
+        words, masks, pos, head, terms, defs, adj = inputs  # unpack
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
@@ -159,7 +181,7 @@ class GCN(nn.Module):
         return rnn_outputs
 
     def forward(self, adj, inputs):
-        words, masks, pos, head, adj = inputs  # unpack
+        words, masks, pos, head, terms, defs, adj = inputs  # unpack
         word_embs = self.emb(words)
         embs = [word_embs]
         if self.opt['pos_dim'] > 0:
