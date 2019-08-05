@@ -57,7 +57,7 @@ parser.add_argument('--rnn_dropout', type=float, default=0.5, help='RNN dropout 
 parser.add_argument('--lr', type=float, default=1.0, help='Applies to sgd and adagrad.')
 parser.add_argument('--lr_decay', type=float, default=0.9, help='Learning rate decay rate.')
 parser.add_argument('--decay_epoch', type=int, default=5, help='Decay learning rate after this epoch.')
-parser.add_argument('--optim', choices=['sgd', 'adagrad', 'adam', 'adamax'], default='sgd', help='Optimizer: sgd, adagrad, adam or adamax.')
+parser.add_argument('--optim', type=str, default='sgd')
 parser.add_argument('--num_epoch', type=int, default=100, help='Number of total training epochs.')
 parser.add_argument('--batch_size', type=int, default=50, help='Training batch size.')
 parser.add_argument('--max_grad_norm', type=float, default=5.0, help='Gradient clipping.')

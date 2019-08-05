@@ -79,6 +79,7 @@ class GCNTrainer(Trainer):
             self.bc.cuda()
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
 
+
     def update(self, batch):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
@@ -105,7 +106,6 @@ class GCNTrainer(Trainer):
         term_def_loss = -self.opt['consistency_loss'] * (term_def-not_term_def)
         loss += term_def_loss
         #loss += self.opt['consistency_loss'] * not_term_def
-        print(term_def_loss.item())
 
 
         loss_val = loss.item()
