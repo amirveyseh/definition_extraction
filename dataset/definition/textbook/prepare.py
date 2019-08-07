@@ -24,6 +24,24 @@ nlp = spacy.load("en")
 # with open('dataset.conll') as file:
 #     lines = file.readlines()
 #
+# new_lines = []
+#
+# for i, l in enumerate(lines):
+#     l = l.strip()
+#     if i < len(lines)-1 and len(l) == 0 and len(lines[i+1].strip()) != 0:
+#         continue
+#     else:
+#         new_lines.append(l)
+#
+# with open('dataset2.conll', 'w') as file:
+#     for l in new_lines:
+#         file.write(l+'\n')
+
+###############################################################################################
+
+# with open('dataset2.conll') as file:
+#     lines = file.readlines()
+#
 # dataset = []
 #
 # tokens = []
@@ -44,10 +62,13 @@ nlp = spacy.load("en")
 #         parts = list(map(lambda a: a.strip(), l.split('\t')))
 #         tokens.append(parts[0])
 #         labels.append(parts[4])
+#
+# with open('fixed/dataset.json', 'w') as file:
+#     json.dump(dataset, file)
 
 ################################################################################################
 
-# with open('dataset.json') as file:
+# with open('fixed/dataset.json') as file:
 #     dataset = json.load(file)
 #
 # label_map = {
@@ -88,36 +109,42 @@ nlp = spacy.load("en")
 # for d in dataset:
 #     for i, l in enumerate(d['labels']):
 #         d['labels'][i] = label_map[l]
+#
+# with open('fixed/dataset.json', 'w') as file:
+#     json.dump(dataset, file)
 
 #####################################################################################################
 
-# with open('dataset2.json') as file:
+# with open('fixed/dataset.json') as file:
 #     dataset = json.load(file)
-
+#
 # for d in dataset:
 #     for i in range(1,len(d['labels'])):
 #         if d['labels'][i].startswith('I') and d['labels'][i][2:] != d['labels'][i-1][2:]:
 #             print(d)
 #             exit(1)
-
+#
 # for d in dataset:
 #     for i in range(1,len(d['labels'])):
-#         if d['labels'][i] == 'B-Qualifier' and d['labels'][i-1] == 'B-Qualifier':
+#         if d['labels'][i] == 'B-Definition' and d['labels'][i-1] == 'B-Definition':
 #             for k in range(i,len(d['labels'])):
-#                 if d['labels'][k] == 'B-Qualifier':
-#                     d['labels'][k] = 'I-Qualifier'
+#                 if d['labels'][k] == 'B-Definition':
+#                     d['labels'][k] = 'I-Definition'
 #                 else:
 #                     break
 #
 # for d in dataset:
 #     for i in range(1,len(d['labels'])):
-#         if d['labels'][i] == 'B-Qualifier' and d['labels'][i-1] == 'B-Qualifier':
+#         if d['labels'][i] == 'B-Definition' and d['labels'][i-1] == 'B-Definition':
 #             print(d)
 #             exit(1)
+#
+# with open('fixed/dataset.json', 'w') as file:
+#     json.dump(dataset, file)
 
 #######################################################################################################
 
-# with open('dataset2.json') as file:
+# with open('fixed/dataset.json') as file:
 #     dataset = json.load(file)
 #
 # newdataset = []
@@ -162,69 +189,84 @@ nlp = spacy.load("en")
 #         'label': 'definition' if any(l != 'O' for l in labels) else 'none'
 #     })
 #
-# with open('dataset2.json', 'w') as file:
+# with open('fixed/dataset.json', 'w') as file:
 #     json.dump(newdataset, file)
 
 ########################################################################################################
 
-# with open('dataset2.json') as file:
-#     dataset = json.load(file)
-#
-# train, test, _, _ = train_test_split(dataset, dataset, random_state=1234, train_size=.8)
-# # train, dev, _, _ = train_test_split(train, train, random_state=1234, train_size=.8)
-# dev = test[:len(test)//2]
-# test = test[len(test)//2:]
-#
-# with open('train.json', 'w') as file:
-#     json.dump(train, file)
-#
-# with open('dev.json', 'w') as file:
-#     json.dump(dev, file)
-#
-# with open('test.json', 'w') as file:
-#     json.dump(test, file)
+with open('fixed/dataset.json') as file:
+    dataset = json.load(file)
+
+new_dataset = []
+
+for d in dataset:
+    if len(d['tokens']) < 150:
+        new_dataset.append(d)
+
+with open('fixed/dataset2.json', 'w') as file:
+    json.dump(new_dataset, file)
+
+
+########################################################################################################
+
+with open('fixed/dataset2.json') as file:
+    dataset = json.load(file)
+
+train, test, _, _ = train_test_split(dataset, dataset, random_state=1234, train_size=.8)
+# train, dev, _, _ = train_test_split(train, train, random_state=1234, train_size=.8)
+dev = test[:len(test)//2]
+test = test[len(test)//2:]
+
+with open('fixed/train.json', 'w') as file:
+    json.dump(train, file)
+
+with open('fixed/dev.json', 'w') as file:
+    json.dump(dev, file)
+
+with open('fixed/test.json', 'w') as file:
+    json.dump(test, file)
 
 ###########################################################################################################
 
-# with open('dataset2.json') as file:
-#     dataset = json.load(file)
-#
-# # maxlen = 0
-# #
-# # for d in dataset:
-# #     if len(d['tokens']) > maxlen:
-# #         maxlen = len(d['tokens'])
-# #
-# # print(maxlen)
-#
-#
-# print(len(dataset))
+with open('fixed/dataset2.json') as file:
+    dataset = json.load(file)
+
+maxlen = 0
+
+for d in dataset:
+    if len(d['tokens']) > maxlen:
+        maxlen = len(d['tokens'])
+
+print(maxlen)
+
+
+print(len(dataset))
 
 ################################################################################################
 
-with open('dataset2.json') as file:
-    dataset = json.load(file)
-
-td = []
-
-good = 0
-total = 0
-
-for d in dataset:
-    counter = Counter(d['labels'])
-    if counter['B-Term'] > 0 or counter['B-Definition'] > 0:
-        total += 1
-    if counter['B-Term'] == 1 and counter['B-Definition'] == 1:
-        good += 1
-        term = ''
-        defs = ''
-        for i, l in enumerate(d['labels']):
-            if 'Term' in l:
-                term += ' ' + d['tokens'][i]
-            if 'Definition' in l:
-                defs += ' ' + d['tokens'][i]
-        td.append([term, defs])
-
-print(good/total)
-for term_def in td:
-    print(term_def)
+# with open('dataset2.json') as file:
+#     dataset = json.load(file)
+#
+# td = []
+#
+# good = 0
+# total = 0
+#
+# for d in dataset:
+#     counter = Counter(d['labels'])
+#     if counter['B-Term'] > 0 or counter['B-Definition'] > 0:
+#         total += 1
+#     if counter['B-Term'] == 1 and counter['B-Definition'] == 1:
+#         good += 1
+#         term = ''
+#         defs = ''
+#         for i, l in enumerate(d['labels']):
+#             if 'Term' in l:
+#                 term += ' ' + d['tokens'][i]
+#             if 'Definition' in l:
+#                 defs += ' ' + d['tokens'][i]
+#         td.append([term, defs])
+#
+# print(good/total)
+# for term_def in td:
+#     print(term_def)

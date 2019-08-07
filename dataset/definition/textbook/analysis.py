@@ -62,7 +62,7 @@ def get_colored_text_html(t_l):
     text += "<br/><br/>"
     return text
 
-with open('mis_labeled.json') as file:
+with open('analysis/mis_labeled.json') as file:
     dataset = json.load(file)
 
 # for d in dataset[:50]:
@@ -85,7 +85,7 @@ with open("mis_labeled.html", 'w') as file:
         file.write(get_colored_text_html(d[0]))
         file.write("---------------------------------------------------------------------------------------------<br/>")
         file.write("Prediction: <br/>")
-        file.write(get_colored_text_html(d[1]))
+        file.write(get_colored_text_html(d[2]))
         file.write("=========================================================================<br/>")
         file.write("=========================================================================<br/>")
         file.write("=========================================================================<br/>")
