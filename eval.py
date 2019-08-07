@@ -155,3 +155,13 @@ print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_
 print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 
 print("Evaluation ended.")
+
+gold = repack(batch.gold(), lens)
+
+good = []
+bad = []
+
+for i, p in enumerate(predictions):
+    if any(l != 'O' for l in gold[i]):
+        if all(gold[i][j] == p[j] for j in range(len(p))):
+            good +=
