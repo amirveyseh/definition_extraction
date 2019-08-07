@@ -9,9 +9,12 @@ terms = []
 for d in dataset:
     term = ''
     counter = Counter(d['labels'])
-    if counter['B-Term'] == '1' and counter['B-Definition'] == 1:
+    if counter['B-Term'] == 1 and counter['B-Definition'] == 1:
         for i, l in enumerate(d['labels']):
             if 'Term' in l:
                 term += d['tokens'][i]+" "
+    if len(term) > 0:
+        terms.append(term)
 
-print(terms)
+for term in terms:
+    print(term)
