@@ -4,6 +4,7 @@ import spacy
 from tqdm import tqdm
 
 nlp = spacy.load("en")
+nlp.add_pipe(WordnetAnnotator(nlp.lang), after='tagger')
 
 with open('dataset2.json') as file:
     dataset = json.load(file)
@@ -14,6 +15,7 @@ tt = 0
 
 for d in tqdm(dataset):
     term = ''
+    definition = []
     counter = Counter(d['labels'])
     if counter['B-Term'] == 1:
         tt += 1
@@ -30,10 +32,14 @@ for d in tqdm(dataset):
         if final_term.count(' ') == 0:
             terms.append(final_term)
 
-# for term in terms:
-#     print(term)
+            token = nlp(final_term)[0]
+            synset = token._.wordnet.synsets()
+            if len(synset) > 0 and len(synset[0].definition()) > 0:
+                definition = synset[0].definition().split(' ')
+    d['definition'] = definition
 
-print(len(terms)/tt)
+with open('dataset3.json', 'w') as file:
+    json.dump(file)
 
 #######################################################################################################
 
@@ -95,3 +101,27 @@ print(len(terms)/tt)
 #         file.write("=========================================================================<br/>")
 #         file.write("=========================================================================<br/>")
 #         file.write("=========================================================================<br/>")
+
+###################################################################################################################
+
+good = 0
+num_syns = []
+for i, term in tqdm(enumerate(terms)):
+    valid = True
+    definition = []
+    for t in term:
+        nlp = spacy.load('en')
+        nlp.add_pipe(WordnetAnnotator(nlp.lang), after='tagger')
+        token = nlp(t)[0]
+        synset = token._.wordnet.synsets()
+        num_syns.append(len(synset))
+        if len(synset) == 0 or len(synset[0].definition()) == 0:
+            valid = False
+            break
+    if valid:
+        good += 1
+    if i % 100 == 0 and i > 0:
+        # print(good / i)
+        print(sum(num_syns)/len(num_syns))
+
+print(good / len(terms))
