@@ -194,22 +194,22 @@ nlp = spacy.load("en")
 
 ########################################################################################################
 
-with open('fixed/dataset.json') as file:
-    dataset = json.load(file)
-
-new_dataset = []
-
-for d in dataset:
-    if len(d['tokens']) < 150:
-        new_dataset.append(d)
-
-with open('fixed/dataset2.json', 'w') as file:
-    json.dump(new_dataset, file)
+# with open('fixed/dataset.json') as file:
+#     dataset = json.load(file)
+#
+# new_dataset = []
+#
+# for d in dataset:
+#     if len(d['tokens']) < 150:
+#         new_dataset.append(d)
+#
+# with open('fixed/dataset2.json', 'w') as file:
+#     json.dump(new_dataset, file)
 
 
 ########################################################################################################
 
-with open('fixed/dataset2.json') as file:
+with open('dataset3.json') as file:
     dataset = json.load(file)
 
 train, test, _, _ = train_test_split(dataset, dataset, random_state=1234, train_size=.8)
@@ -217,30 +217,30 @@ train, test, _, _ = train_test_split(dataset, dataset, random_state=1234, train_
 dev = test[:len(test)//2]
 test = test[len(test)//2:]
 
-with open('fixed/train.json', 'w') as file:
+with open('wordnet/train.json', 'w') as file:
     json.dump(train, file)
 
-with open('fixed/dev.json', 'w') as file:
+with open('wordnet/dev.json', 'w') as file:
     json.dump(dev, file)
 
-with open('fixed/test.json', 'w') as file:
+with open('wordnet/test.json', 'w') as file:
     json.dump(test, file)
 
 ###########################################################################################################
 
-with open('fixed/dataset2.json') as file:
-    dataset = json.load(file)
-
-maxlen = 0
-
-for d in dataset:
-    if len(d['tokens']) > maxlen:
-        maxlen = len(d['tokens'])
-
-print(maxlen)
-
-
-print(len(dataset))
+# with open('fixed/dataset2.json') as file:
+#     dataset = json.load(file)
+#
+# maxlen = 0
+#
+# for d in dataset:
+#     if len(d['tokens']) > maxlen:
+#         maxlen = len(d['tokens'])
+#
+# print(maxlen)
+#
+#
+# print(len(dataset))
 
 ################################################################################################
 

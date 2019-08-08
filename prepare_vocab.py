@@ -76,6 +76,7 @@ def load_tokens(filename):
         tokens = []
         for d in data:
             ts = d['tokens']
+            ts += d['definition']
             tokens += list(filter(lambda t: t!='<PAD>', ts))
     print("{} tokens from {} examples loaded from {}.".format(len(tokens), len(data), filename))
     return tokens

@@ -3,6 +3,8 @@ from collections import Counter
 import spacy
 from tqdm import tqdm
 
+from spacy_wordnet.wordnet_annotator import WordnetAnnotator
+
 nlp = spacy.load("en")
 nlp.add_pipe(WordnetAnnotator(nlp.lang), after='tagger')
 
@@ -13,7 +15,7 @@ terms = []
 terms2 = []
 tt = 0
 
-for d in tqdm(dataset):
+for d in dataset:
     term = ''
     definition = []
     counter = Counter(d['labels'])
@@ -29,7 +31,7 @@ for d in tqdm(dataset):
             if not token.is_stop:
                 final_term += token.text + ' '
         final_term = final_term.strip()
-        if final_term.count(' ') == 0:
+        if final_term.count(' ') == 0 and len(final_term) > 0:
             terms.append(final_term)
 
             token = nlp(final_term)[0]
@@ -39,7 +41,7 @@ for d in tqdm(dataset):
     d['definition'] = definition
 
 with open('dataset3.json', 'w') as file:
-    json.dump(file)
+    json.dump(dataset, file)
 
 #######################################################################################################
 
@@ -104,24 +106,24 @@ with open('dataset3.json', 'w') as file:
 
 ###################################################################################################################
 
-good = 0
-num_syns = []
-for i, term in tqdm(enumerate(terms)):
-    valid = True
-    definition = []
-    for t in term:
-        nlp = spacy.load('en')
-        nlp.add_pipe(WordnetAnnotator(nlp.lang), after='tagger')
-        token = nlp(t)[0]
-        synset = token._.wordnet.synsets()
-        num_syns.append(len(synset))
-        if len(synset) == 0 or len(synset[0].definition()) == 0:
-            valid = False
-            break
-    if valid:
-        good += 1
-    if i % 100 == 0 and i > 0:
-        # print(good / i)
-        print(sum(num_syns)/len(num_syns))
-
-print(good / len(terms))
+# good = 0
+# num_syns = []
+# for i, term in tqdm(enumerate(terms)):
+#     valid = True
+#     definition = []
+#     for t in term:
+#         nlp = spacy.load('en')
+#         nlp.add_pipe(WordnetAnnotator(nlp.lang), after='tagger')
+#         token = nlp(t)[0]
+#         synset = token._.wordnet.synsets()
+#         num_syns.append(len(synset))
+#         if len(synset) == 0 or len(synset[0].definition()) == 0:
+#             valid = False
+#             break
+#     if valid:
+#         good += 1
+#     if i % 100 == 0 and i > 0:
+#         # print(good / i)
+#         print(sum(num_syns)/len(num_syns))
+#
+# print(good / len(terms))
