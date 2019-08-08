@@ -51,10 +51,10 @@ class Trainer(object):
 
 def unpack_batch(batch, cuda):
     if cuda:
-        inputs = [Variable(b.cuda()) for b in batch[:7]]
-        labels = Variable(batch[7].cuda())
-        sent_labels = Variable(batch[8].cuda())
-        dep_path = Variable(batch[9].cuda())
+        inputs = [Variable(b.cuda()) for b in batch[:9]]
+        labels = Variable(batch[9].cuda())
+        sent_labels = Variable(batch[10].cuda())
+        dep_path = Variable(batch[11].cuda())
     else:
         print("Error")
         exit(1)
@@ -83,10 +83,12 @@ class GCNTrainer(Trainer):
     def update(self, batch):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
+        orig_idx2 = batch[-1]
+
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections, term_def, not_term_def = self.model(inputs)
+        logits, class_logits, selections, term_def, not_term_def = self.model(inputs, orig_idx2)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -118,10 +120,11 @@ class GCNTrainer(Trainer):
     def predict(self, batch, unsort=True):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
-        orig_idx = batch[-1]
+        orig_idx = batch[-2]
+        orig_idx2 = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _, _, _ = self.model(inputs)
+        logits, sent_logits, _, _, _ = self.model(inputs, orig_idx2)
 
         labels = labels - 1
         labels[labels < 0] = 0

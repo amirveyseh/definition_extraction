@@ -48,13 +48,17 @@ class DataLoader(object):
         processed = []
         for d in data:
             tokens = list(d['tokens'])
+            definitions = list(d['definition'])
+            if len(definitions) == 0:
+                definitions = ['.']
             if opt['lower']:
                 tokens = [t.lower() for t in tokens]
+                definitions = [t.lower() for t in definitions]
             tokens = map_to_ids(tokens, vocab.word2id)
+            definitions = map_to_ids(definitions, vocab.word2id)
             pos = map_to_ids(d['pos'], constant.POS_TO_ID)
             head = [int(x) for x in d['heads']]
             assert any([x == -1 for x in head])
-            l = len(tokens)
             labels = [self.label2id[l] for l in d['labels']]
             dep_path = [0]*len(d['tokens'])
             for i in d['dep_path']:
@@ -75,9 +79,9 @@ class DataLoader(object):
                         defs[i] = 1
             if self.opt['only_label'] == 1 and not self.eval:
                 if d['label'] != 'none':
-                    processed += [(tokens, pos, head, terms, defs, dep_path, adj, labels, self.sent_label2id[d['label']])]
+                    processed += [(tokens, pos, head, terms, defs, definitions, dep_path, adj, labels, self.sent_label2id[d['label']])]
             else:
-                processed += [(tokens, pos, head, terms, defs, dep_path, adj, labels, self.sent_label2id[d['label']])]
+                processed += [(tokens, pos, head, terms, defs, definitions, dep_path, adj, labels, self.sent_label2id[d['label']])]
         return processed
 
     def gold(self):
@@ -99,11 +103,13 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 9
+        assert len(batch) == 10
 
         # sort all fields by lens for easy RNN operations
-        lens = [len(x) for x in batch[0]]
+        lens = [len(batch[0][i]) for i in range(len(batch[0]))]
         batch, orig_idx = sort_all(batch, lens)
+        lens2 = [len(batch[5][i]) for i in range(len(batch[5]))]
+        batch2, orig_idx2 = sort_all(batch, lens2)
 
         # word dropout
         if not self.eval:
@@ -118,14 +124,16 @@ class DataLoader(object):
         head = get_long_tensor(batch[2], batch_size)
         terms = get_long_tensor(batch[3], batch_size)
         defs = get_long_tensor(batch[4], batch_size)
-        dep_path = get_long_tensor(batch[5], batch_size).float()
-        adj = get_float_tensor2D(batch[6], batch_size)
+        definitions = get_long_tensor(batch2[5], batch_size)
+        mask_definitions = torch.eq(definitions, 0)
+        dep_path = get_long_tensor(batch[6], batch_size).float()
+        adj = get_float_tensor2D(batch[7], batch_size)
 
-        labels = get_long_tensor(batch[7], batch_size)
+        labels = get_long_tensor(batch[8], batch_size)
 
-        sent_labels = torch.FloatTensor(batch[8])
+        sent_labels = torch.FloatTensor(batch[9])
 
-        return (words, masks, pos, head, terms, defs, adj, labels, sent_labels, dep_path, orig_idx)
+        return (words, masks, pos, head, terms, defs, definitions, mask_definitions, adj, labels, sent_labels, dep_path, orig_idx, orig_idx2)
 
     def __iter__(self):
         for i in range(self.__len__()):

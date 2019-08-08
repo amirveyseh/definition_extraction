@@ -21,8 +21,8 @@ from utils import torch_utils, scorer, constant, helper
 from utils.vocab import Vocab
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='dataset/definition/textbook')
-parser.add_argument('--vocab_dir', type=str, default='dataset/definition/textbook/vocab')
+parser.add_argument('--data_dir', type=str, default='dataset/definition/textbook/wordnet')
+parser.add_argument('--vocab_dir', type=str, default='dataset/definition/textbook/wordnet/vocab')
 parser.add_argument('--emb_dim', type=int, default=300, help='Word embedding dimension.')
 parser.add_argument('--ner_dim', type=int, default=30, help='NER embedding dimension.')
 parser.add_argument('--pos_dim', type=int, default=30, help='POS embedding dimension.')
