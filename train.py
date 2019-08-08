@@ -41,6 +41,7 @@ parser.add_argument('--only_label', type=int, default=0, help='')
 parser.add_argument('--sent_loss', type=float, default=100.0, help='')
 parser.add_argument('--dep_path_loss', type=float, default=100.0, help='')
 parser.add_argument('--consistency_loss', type=float, default=1.0, help='')
+parser.add_argument('--wordnet_loss', type=float, default=100.0, help='')
 
 parser.add_argument('--prune_k', default=-1, type=int, help='Prune the dependency tree to <= K distance off the dependency path; set to -1 for no pruning.')
 parser.add_argument('--conv_l2', type=float, default=0, help='L2-weight decay on conv layers only.')

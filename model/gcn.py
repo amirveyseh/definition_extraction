@@ -55,9 +55,13 @@ class GCNClassifier(nn.Module):
         term_def = (terms_out * defs_out).sum(1).mean()
         not_term_def = (terms_out * defs_out[torch.randperm(terms_out.shape[0])]).sum(1).mean()
 
+        wordnet_defs_out = pool(F.softmax(def_outputs), defs.unsqueeze(2).byte(), type=pool_type)
+        wordnet_def = (defs_out * wordnet_defs_out).sum(1).mean()
+        not_wordnet_def = (defs_out * wordnet_defs_out[torch.randperm(wordnet_defs_out.shape[0])]).sum(1).mean()
+
         selections = self.selector(gcn_outputs)
 
-        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def
+        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def, wordnet_def, not_wordnet_def
 
 
 class GCNRelationModel(nn.Module):

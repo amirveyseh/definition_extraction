@@ -88,7 +88,7 @@ class GCNTrainer(Trainer):
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections, term_def, not_term_def = self.model(inputs, orig_idx2)
+        logits, class_logits, selections, term_def, not_term_def, wordnet_def, not_wordnet_def = self.model(inputs, orig_idx2)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -109,6 +109,9 @@ class GCNTrainer(Trainer):
         loss += term_def_loss
         #loss += self.opt['consistency_loss'] * not_term_def
 
+        wordnet_def_loss = -self.opt['wordnet_loss'] * (wordnet_def-not_wordnet_def)
+        loss += wordnet_def_loss
+        print(wordnet_def_loss.item())
 
         loss_val = loss.item()
         # backward
@@ -124,7 +127,7 @@ class GCNTrainer(Trainer):
         orig_idx2 = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _, _, _ = self.model(inputs, orig_idx2)
+        logits, sent_logits, _, _, _, _, _ = self.model(inputs, orig_idx2)
 
         labels = labels - 1
         labels[labels < 0] = 0
