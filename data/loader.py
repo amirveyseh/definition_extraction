@@ -135,7 +135,7 @@ class DataLoader(object):
 
         sent_labels = torch.FloatTensor(batch[9])
 
-        terms_labels = torch.FloatTensor(batch[10])
+        terms_labels = get_long_tensor(batch[10], batch_size).float()
 
         return (words, masks, pos, head, terms, defs, definitions, mask_definitions, adj, labels, sent_labels, dep_path, terms_labels, orig_idx, orig_idx2)
 
