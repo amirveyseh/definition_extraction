@@ -31,6 +31,7 @@ class GCNClassifier(nn.Module):
         self.out_mlp = nn.Sequential(*layers)
 
         self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
+        self.term_classifier = nn.Sequential(nn.Linear(in_dim*2, 1), nn.Sigmoid())
         self.opt = opt
 
     def conv_l2(self):
@@ -61,7 +62,9 @@ class GCNClassifier(nn.Module):
 
         selections = self.selector(gcn_outputs)
 
-        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def, wordnet_def, not_wordnet_def
+        term_selections = self.term_classifier(torch.cat([outputs,def_outputs], dim=2))
+
+        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def, wordnet_def, not_wordnet_def, term_selections
 
 
 class GCNRelationModel(nn.Module):

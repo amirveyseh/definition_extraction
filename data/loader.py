@@ -34,8 +34,9 @@ class DataLoader(object):
             data = [data[i] for i in indices]
         self.id2label = dict([(v,k) for k,v in self.label2id.items()])
         self.sent_id2label = dict([(v,k) for k,v in self.sent_label2id.items()])
-        self.labels = [[self.id2label[l]] for d in data for l in d[-2]]
-        self.sent_labels = [self.sent_id2label[d[-1]] for d in data]
+        self.labels = [[self.id2label[l]] for d in data for l in d[-3]]
+        self.sent_labels = [self.sent_id2label[d[-2]] for d in data]
+        self.terms_labels = [d[-1] for d in data]
         self.num_examples = len(data)
 
         # chunk into batches
@@ -77,11 +78,12 @@ class DataLoader(object):
                         terms[i] = 1
                     if 'Definition' in l:
                         defs[i] = 1
+            terms_label = d['terms']
             if self.opt['only_label'] == 1 and not self.eval:
                 if d['label'] != 'none':
-                    processed += [(tokens, pos, head, terms, defs, definitions, dep_path, adj, labels, self.sent_label2id[d['label']])]
+                    processed += [(tokens, pos, head, terms, defs, definitions, dep_path, adj, labels, self.sent_label2id[d['label']], terms_label)]
             else:
-                processed += [(tokens, pos, head, terms, defs, definitions, dep_path, adj, labels, self.sent_label2id[d['label']])]
+                processed += [(tokens, pos, head, terms, defs, definitions, dep_path, adj, labels, self.sent_label2id[d['label']], terms_label)]
         return processed
 
     def gold(self):
@@ -103,7 +105,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 10
+        assert len(batch) == 11
 
         # sort all fields by lens for easy RNN operations
         lens = [len(batch[0][i]) for i in range(len(batch[0]))]
@@ -133,7 +135,9 @@ class DataLoader(object):
 
         sent_labels = torch.FloatTensor(batch[9])
 
-        return (words, masks, pos, head, terms, defs, definitions, mask_definitions, adj, labels, sent_labels, dep_path, orig_idx, orig_idx2)
+        terms_labels = torch.FloatTensor(batch[10])
+
+        return (words, masks, pos, head, terms, defs, definitions, mask_definitions, adj, labels, sent_labels, dep_path, terms_labels, orig_idx, orig_idx2)
 
     def __iter__(self):
         for i in range(self.__len__()):

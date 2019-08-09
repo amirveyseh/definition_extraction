@@ -55,13 +55,14 @@ def unpack_batch(batch, cuda):
         labels = Variable(batch[9].cuda())
         sent_labels = Variable(batch[10].cuda())
         dep_path = Variable(batch[11].cuda())
+        terms_labels = Variable(batch[12].cuda())
     else:
         print("Error")
         exit(1)
     tokens = batch[0]
     head = batch[3]
     lens = batch[1].eq(0).long().sum(1).squeeze()
-    return inputs, labels, sent_labels, dep_path, tokens, head, lens
+    return inputs, labels, sent_labels, dep_path, terms_labels, tokens, head, lens
 
 class GCNTrainer(Trainer):
     def __init__(self, opt, emb_matrix=None):
@@ -81,14 +82,14 @@ class GCNTrainer(Trainer):
 
 
     def update(self, batch):
-        inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, sent_labels, dep_path, terms_labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         orig_idx2 = batch[-1]
 
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections, term_def, not_term_def, wordnet_def, not_wordnet_def = self.model(inputs, orig_idx2)
+        logits, class_logits, selections, term_def, not_term_def, wordnet_def, not_wordnet_def, term_selections = self.model(inputs, orig_idx2)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -111,7 +112,10 @@ class GCNTrainer(Trainer):
 
         wordnet_def_loss = -self.opt['wordnet_loss'] * (wordnet_def-not_wordnet_def)
         loss += wordnet_def_loss
-        print(wordnet_def_loss.item())
+
+        terms_loss = self.opt['terms_loss'] * self.bc(term_selections, terms_labels)
+        loss += terms_loss
+        print(terms_loss.item())
 
         loss_val = loss.item()
         # backward
@@ -121,7 +125,7 @@ class GCNTrainer(Trainer):
         return loss_val, sent_loss.item(), selection_loss.item()
 
     def predict(self, batch, unsort=True):
-        inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, sent_labels, dep_path, terms_labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         orig_idx = batch[-2]
         orig_idx2 = batch[-1]
