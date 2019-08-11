@@ -57,8 +57,8 @@ class GCNClassifier(nn.Module):
         not_term_def = (terms_out * defs_out[torch.randperm(terms_out.shape[0])]).sum(1).mean()
 
         wordnet_defs_out = pool(F.softmax(def_outputs), defs.unsqueeze(2).byte(), type=pool_type)
-        wordnet_def = (defs_out * wordnet_defs_out).sum(1).mean()
-        not_wordnet_def = (defs_out * wordnet_defs_out[torch.randperm(wordnet_defs_out.shape[0])]).sum(1).mean()
+        wordnet_def = (terms_out * wordnet_defs_out).sum(1).mean()
+        not_wordnet_def = (terms_out * wordnet_defs_out[torch.randperm(wordnet_defs_out.shape[0])]).sum(1).mean()
 
         selections = self.selector(gcn_outputs)
 
