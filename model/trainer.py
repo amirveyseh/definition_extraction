@@ -139,7 +139,7 @@ class GCNTrainer(Trainer):
 
         loss_val = loss.item()
         # backward
-        loss.backward()
+        loss.backward(retain_graph=True)
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         torch.nn.utils.clip_grad_norm_(self.main.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
@@ -151,9 +151,9 @@ class GCNTrainer(Trainer):
         logits3 = sf(self.auxilary3(main_inputs, masks, terms, defs))
         logits = sf(logits)
 
-        loss1 = F.kl(torch.log(logits1+constant.eps), logits)
-        loss2 = F.kl(torch.log(logits2+constant.eps), logits)
-        loss3 = F.kl(torch.log(logits3+constant.eps), logits)
+        loss1 = self.kl(torch.log(logits1+constant.eps), logits)
+        loss2 = self.kl(torch.log(logits2+constant.eps), logits)
+        loss3 = self.kl(torch.log(logits3+constant.eps), logits)
         # loss1 = F.kl_div(logits, logits3)
 
         loss = loss1 + loss2 + loss3
