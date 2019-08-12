@@ -11,6 +11,9 @@ from torchcrf import CRF
 
 from model.gcn import GCNClassifier
 from model.main import Main
+from model.auxilary1 import Auxilary1
+from model.auxilary2 import Auxilary2
+from model.auxilary3 import Auxilary3
 from utils import constant, torch_utils
 
 import random
@@ -70,19 +73,31 @@ class GCNTrainer(Trainer):
         self.emb_matrix = emb_matrix
         self.model = GCNClassifier(opt, emb_matrix=emb_matrix)
         self.main = Main(opt)
+        self.auxilary1 = Auxilary1(opt)
+        self.auxilary2 = Auxilary2(opt)
+        self.auxilary3 = Auxilary3(opt)
         self.criterion = nn.CrossEntropyLoss(reduction="none")
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
         self.main_parameters = [p for p in self.main.parameters() if p.requires_grad]
+        self.auxilary1_parameters = [p for p in self.auxilary1.parameters() if p.requires_grad]
+        self.auxilary2_parameters = [p for p in self.auxilary2.parameters() if p.requires_grad]
+        self.auxilary3_parameters = [p for p in self.auxilary3.parameters() if p.requires_grad]
         self.crf = CRF(self.opt['num_class'], batch_first=True)
         self.bc = nn.BCELoss()
         if opt['cuda']:
             self.model.cuda()
             self.main.cuda()
+            self.auxilary1.cuda()
+            self.auxilary2.cuda()
+            self.auxilary3.cuda()
             self.criterion.cuda()
             self.crf.cuda()
             self.bc.cuda()
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
         self.main_optimizer = torch_utils.get_optimizer(opt['optim'], self.main_parameters, opt['lr'])
+        self.auxilary1_optimizer = torch_utils.get_optimizer(opt['optim'], self.auxilary1_parameters, opt['lr'])
+        self.auxilary2_optimizer = torch_utils.get_optimizer(opt['optim'], self.auxilary2_parameters, opt['lr'])
+        self.auxilary3_optimizer = torch_utils.get_optimizer(opt['optim'], self.auxilary3_parameters, opt['lr'])
 
 
     def update(self, batch):
@@ -124,6 +139,14 @@ class GCNTrainer(Trainer):
         torch.nn.utils.clip_grad_norm_(self.main.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
         self.main_optimizer.step()
+
+        sf = nn.Softmax(2)
+        logits1 = sf(self.auxilary1(main_inputs, masks, terms, defs))
+        logits2 = sf(self.auxilary2(main_inputs, masks, terms, defs))
+        logits3 = sf(self.auxilary3(main_inputs, masks, terms, defs))
+        logits = sf(logits)
+
+        
 
 
         return loss_val, sent_loss.item(), selection_loss.item()
