@@ -21,3 +21,4 @@ LABEL_TO_ID = {'O': 1, 'B-Term': 2, 'B-Definition': 3, 'B-Qualifier': 4, 'I-Term
 SENT_LABEL_TO_ID = {'none': 0, 'definition': 1}
 
 INFINITY_NUMBER = 1e12
+eps = 1e-10

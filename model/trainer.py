@@ -84,6 +84,7 @@ class GCNTrainer(Trainer):
         self.auxilary3_parameters = [p for p in self.auxilary3.parameters() if p.requires_grad]
         self.crf = CRF(self.opt['num_class'], batch_first=True)
         self.bc = nn.BCELoss()
+        self.kl = nn.KLDivLoss()
         if opt['cuda']:
             self.model.cuda()
             self.main.cuda()
@@ -93,6 +94,7 @@ class GCNTrainer(Trainer):
             self.criterion.cuda()
             self.crf.cuda()
             self.bc.cuda()
+            self.kl.cuda()
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
         self.main_optimizer = torch_utils.get_optimizer(opt['optim'], self.main_parameters, opt['lr'])
         self.auxilary1_optimizer = torch_utils.get_optimizer(opt['optim'], self.auxilary1_parameters, opt['lr'])
@@ -110,6 +112,9 @@ class GCNTrainer(Trainer):
         self.main.train()
         self.optimizer.zero_grad()
         self.main_optimizer.zero_grad()
+        self.auxilary1_optimizer.zero_grad()
+        self.auxilary2_optimizer.zero_grad()
+        self.auxilary3_optimizer.zero_grad()
         main_inputs = self.model(inputs)
         logits, class_logits, selections, term_def, not_term_def = self.main(main_inputs, masks, terms, defs)
 
@@ -146,8 +151,22 @@ class GCNTrainer(Trainer):
         logits3 = sf(self.auxilary3(main_inputs, masks, terms, defs))
         logits = sf(logits)
 
-        
+        loss1 = F.kl(torch.log(logits1+constant.eps), logits)
+        loss2 = F.kl(torch.log(logits2+constant.eps), logits)
+        loss3 = F.kl(torch.log(logits3+constant.eps), logits)
+        # loss1 = F.kl_div(logits, logits3)
 
+        loss = loss1 + loss2 + loss3
+
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.auxilary1.parameters(), self.opt['max_grad_norm'])
+        torch.nn.utils.clip_grad_norm_(self.auxilary2.parameters(), self.opt['max_grad_norm'])
+        torch.nn.utils.clip_grad_norm_(self.auxilary3.parameters(), self.opt['max_grad_norm'])
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
+        self.optimizer.step()
+        self.auxilary1_optimizer.step()
+        self.auxilary2_optimizer.step()
+        self.auxilary3_optimizer.step()
 
         return loss_val, sent_loss.item(), selection_loss.item()
 
