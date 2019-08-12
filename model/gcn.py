@@ -31,6 +31,7 @@ class GCNClassifier(nn.Module):
         self.out_mlp = nn.Sequential(*layers)
 
         self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
+        self.term_classifier = nn.Sequential(nn.Linear(in_dim*2, 1), nn.Sigmoid())
         self.opt = opt
 
     def conv_l2(self):
@@ -50,27 +51,14 @@ class GCNClassifier(nn.Module):
         terms_out = pool(F.softmax(outputs), terms.unsqueeze(2).byte(), type=pool_type)
         defs_out = pool(F.softmax(outputs), defs.unsqueeze(2).byte(), type=pool_type)
         term_def = (terms_out * defs_out).sum(1).mean()
-        # has_term_def = (terms+defs).sum(1)
-        # has_term_def[has_term_def>0] = 1
-        # has_term_def_ind = []
-        # for i in range(masks.shape[0]):
-        #     if has_term_def[i] > 0:
-        #         has_term_def_ind.append(i)
-        # random.shuffle(has_term_def_ind)
-        # perm = list(range(masks.shape[0]))
-        # k = 0
-        # for i in range(masks.shape[0]):
-        #     if i in has_term_def_ind:
-        #         perm[i] = has_term_def_ind[k]
-        #         k += 1
         not_term_def = (terms_out * defs_out[torch.randperm(terms_out.shape[0])]).sum(1).mean()
-        #
-        # term_def = term_def.sum() / has_term_def.sum()
-        # not_term_def = not_term_def.sum() / has_term_def.sum()
 
         selections = self.selector(gcn_outputs)
 
-        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def
+        defs_out = pool(outputs, defs.unsqueeze(2).byte(), type=pool_type).repeat(1, outputs.shape[1]).view(*outputs.shape)
+        term_selections = self.term_classifier(torch.cat([defs_out, outputs], dim=2))
+
+        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def, term_selections
 
 
 class GCNRelationModel(nn.Module):

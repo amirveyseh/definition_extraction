@@ -83,10 +83,12 @@ class GCNTrainer(Trainer):
     def update(self, batch):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
+        _, _, _, _, terms, _, _ = inputs
+
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections, term_def, not_term_def = self.model(inputs)
+        logits, class_logits, selections, term_def, not_term_def, term_selections = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -107,13 +109,16 @@ class GCNTrainer(Trainer):
         loss += term_def_loss
         #loss += self.opt['consistency_loss'] * not_term_def
 
+        term_loss = self.opt['sent_loss'] * self.bc(term_selections.view(-1, 1), terms.float().view(-1, 1))
+        loss += term_loss
+
 
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
-        return loss_val, sent_loss.item(), selection_loss.item()
+        return loss_val, sent_loss.item(), term_loss.item()
 
     def predict(self, batch, unsort=True):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
@@ -121,7 +126,7 @@ class GCNTrainer(Trainer):
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _, _, _ = self.model(inputs)
+        logits, sent_logits, _, _, _, _ = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
