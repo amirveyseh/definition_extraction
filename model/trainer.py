@@ -9,7 +9,8 @@ from torch.autograd import Variable
 import numpy as np
 from torchcrf import CRF
 
-from model.gcn import GCNClassifier, Main
+from model.gcn import GCNClassifier
+from model.main import Main
 from utils import constant, torch_utils
 
 import random
@@ -87,13 +88,15 @@ class GCNTrainer(Trainer):
     def update(self, batch):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
+        _, masks, _, _, terms, defs, _ = inputs
+
         # step forward
         self.model.train()
         self.main.train()
         self.optimizer.zero_grad()
         self.main_optimizer.zero_grad()
         main_inputs = self.model(inputs)
-        logits, class_logits, selections, term_def, not_term_def = self.main(main_inputs)
+        logits, class_logits, selections, term_def, not_term_def = self.main(main_inputs, masks, terms, defs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -122,16 +125,20 @@ class GCNTrainer(Trainer):
         self.optimizer.step()
         self.main_optimizer.step()
 
-        
+
         return loss_val, sent_loss.item(), selection_loss.item()
 
     def predict(self, batch, unsort=True):
         inputs, labels, sent_labels, dep_path, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
+        _, masks, _, _, terms, defs, _ = inputs
+
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits, sent_logits, _, _, _ = self.model(inputs)
+        self.main.eval()
+        main_inputs = self.model(inputs)
+        logits, sent_logits, _, _, _ = self.main(main_inputs, masks, terms, defs)
 
         labels = labels - 1
         labels[labels < 0] = 0

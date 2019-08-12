@@ -15,16 +15,16 @@ class Main(nn.Module):
         super().__init__()
         self.opt = opt
         in_dim = opt['hidden_dim']
-        self.classifier = nn.Linear(in_dim*2, opt['num_class'])
+        self.classifier = nn.Linear(in_dim*3, opt['num_class'])
         self.selector = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
 
-        in_dim = opt['hidden_dim']
+        in_dim = opt['hidden_dim'] * 2
         layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
         for _ in range(self.opt['mlp_layers'] - 1):
             layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
         self.out_mlp = nn.Sequential(*layers)
 
-        self.sent_classifier = nn.Sequential(nn.Linear(in_dim, 1), nn.Sigmoid())
+        self.sent_classifier = nn.Sequential(nn.Linear(opt['hidden_dim'], 1), nn.Sigmoid())
         self.opt = opt
 
     def conv_l2(self):
@@ -33,7 +33,7 @@ class Main(nn.Module):
     def forward(self, inputs, masks, terms, defs):
         gcn_outputs, forward_outputs, backward_outputs = inputs  # unpack
 
-        outputs = torch.cat([forward_outputs, backward_outputs], dim=1)
+        outputs = torch.cat([forward_outputs, backward_outputs], dim=2)
 
         logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
 
