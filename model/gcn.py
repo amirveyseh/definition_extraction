@@ -39,38 +39,23 @@ class GCNClassifier(nn.Module):
     def forward(self, inputs):
         _, masks, _, _, terms, defs, _ = inputs  # unpack
 
-        outputs, gcn_outputs = self.gcn_model(inputs)
-        logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
-
-        pool_type = self.opt['pooling']
-        out = pool(outputs, masks.unsqueeze(2), type=pool_type)
-        out = self.out_mlp(out)
-        sent_logits = self.sent_classifier(out)
-
-        terms_out = pool(F.softmax(outputs), terms.unsqueeze(2).byte(), type=pool_type)
-        defs_out = pool(F.softmax(outputs), defs.unsqueeze(2).byte(), type=pool_type)
-        term_def = (terms_out * defs_out).sum(1).mean()
-        # has_term_def = (terms+defs).sum(1)
-        # has_term_def[has_term_def>0] = 1
-        # has_term_def_ind = []
-        # for i in range(masks.shape[0]):
-        #     if has_term_def[i] > 0:
-        #         has_term_def_ind.append(i)
-        # random.shuffle(has_term_def_ind)
-        # perm = list(range(masks.shape[0]))
-        # k = 0
-        # for i in range(masks.shape[0]):
-        #     if i in has_term_def_ind:
-        #         perm[i] = has_term_def_ind[k]
-        #         k += 1
-        not_term_def = (terms_out * defs_out[torch.randperm(terms_out.shape[0])]).sum(1).mean()
+        gcn_outputs, forward_outputs, backward_outputs = self.gcn_model(inputs)
+        # logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
         #
-        # term_def = term_def.sum() / has_term_def.sum()
-        # not_term_def = not_term_def.sum() / has_term_def.sum()
+        # pool_type = self.opt['pooling']
+        # out = pool(outputs, masks.unsqueeze(2), type=pool_type)
+        # out = self.out_mlp(out)
+        # sent_logits = self.sent_classifier(out)
+        #
+        # terms_out = pool(F.softmax(outputs), terms.unsqueeze(2).byte(), type=pool_type)
+        # defs_out = pool(F.softmax(outputs), defs.unsqueeze(2).byte(), type=pool_type)
+        # term_def = (terms_out * defs_out).sum(1).mean()
+        # not_term_def = (terms_out * defs_out[torch.randperm(terms_out.shape[0])]).sum(1).mean()
+        #
+        # selections = self.selector(gcn_outputs)
 
-        selections = self.selector(gcn_outputs)
-
-        return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def
+        # return logits, sent_logits.squeeze(), selections.squeeze(), term_def, not_term_def
+        return gcn_outputs, forward_outputs, backward_outputs
 
 
 class GCNRelationModel(nn.Module):
@@ -89,11 +74,18 @@ class GCNRelationModel(nn.Module):
         self.gcn = GCN(opt, embeddings, opt['hidden_dim'], opt['num_layers'])
 
         # output mlp layers
-        in_dim = opt['hidden_dim'] * 2
+        in_dim = opt['hidden_dim'] * 1
         layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
         for _ in range(self.opt['mlp_layers'] - 1):
             layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
-        self.out_mlp = nn.Sequential(*layers)
+        self.forward_out_mlp = nn.Sequential(*layers)
+
+        # output mlp layers
+        in_dim = opt['hidden_dim'] * 1
+        layers = [nn.Linear(in_dim, opt['hidden_dim']), nn.ReLU()]
+        for _ in range(self.opt['mlp_layers'] - 1):
+            layers += [nn.Linear(opt['hidden_dim'], opt['hidden_dim']), nn.ReLU()]
+        self.backward_out_mlp = nn.Sequential(*layers)
 
         # gcn output mlp layers
         in_dim = opt['hidden_dim']
@@ -124,15 +116,16 @@ class GCNRelationModel(nn.Module):
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
-        h, pool_mask, gcn_outputs = self.gcn(adj, inputs)
+        h, pool_mask, gcn_outputs, f_h, b_h = self.gcn(adj, inputs)
 
         # pooling
         # pool_type = self.opt['pooling']
         # h_out = pool(h, pool_mask, type=pool_type)
         # outputs = torch.cat([h_out], dim=1)
-        outputs = self.out_mlp(h)
+        forward_outputs = self.forward_out_mlp(f_h)
+        backward_outputs = self.backward_out_mlp(b_h)
         gcn_outputs = self.gcn_out_mlp(gcn_outputs)
-        return outputs, gcn_outputs
+        return gcn_outputs, forward_outputs, backward_outputs
 
 
 class GCN(nn.Module):
@@ -196,6 +189,8 @@ class GCN(nn.Module):
             gcn_inputs = embs
 
         lstm_outs = gcn_inputs.clone()
+        forward = lstm_outs[:,:,:self.opt['rnn_hidden']]
+        backward = lstm_outs[:,:,self.opt['rnn_hidden']:]
 
         # gcn layer
         denom = adj.sum(2).unsqueeze(2) + 1
@@ -211,7 +206,7 @@ class GCN(nn.Module):
             gcn_inputs = self.gcn_drop(gAxW) if l < self.layers - 1 else gAxW
 
 
-        return lstm_outs, masks.unsqueeze(2), gcn_inputs
+        return lstm_outs, masks.unsqueeze(2), gcn_inputs, forward, backward
 
 
 def pool(h, mask, type='max'):

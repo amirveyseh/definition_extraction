@@ -9,7 +9,7 @@ from torch.autograd import Variable
 import numpy as np
 from torchcrf import CRF
 
-from model.gcn import GCNClassifier
+from model.gcn import GCNClassifier, Main
 from utils import constant, torch_utils
 
 import random
@@ -68,16 +68,20 @@ class GCNTrainer(Trainer):
         self.opt = opt
         self.emb_matrix = emb_matrix
         self.model = GCNClassifier(opt, emb_matrix=emb_matrix)
+        self.main = Main(opt)
         self.criterion = nn.CrossEntropyLoss(reduction="none")
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
+        self.main_parameters = [p for p in self.main.parameters() if p.requires_grad]
         self.crf = CRF(self.opt['num_class'], batch_first=True)
         self.bc = nn.BCELoss()
         if opt['cuda']:
             self.model.cuda()
+            self.main.cuda()
             self.criterion.cuda()
             self.crf.cuda()
             self.bc.cuda()
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
+        self.main_optimizer = torch_utils.get_optimizer(opt['optim'], self.main_parameters, opt['lr'])
 
 
     def update(self, batch):
@@ -85,8 +89,11 @@ class GCNTrainer(Trainer):
 
         # step forward
         self.model.train()
+        self.main.train()
         self.optimizer.zero_grad()
-        logits, class_logits, selections, term_def, not_term_def = self.model(inputs)
+        self.main_optimizer.zero_grad()
+        main_inputs = self.model(inputs)
+        logits, class_logits, selections, term_def, not_term_def = self.main(main_inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -105,14 +112,17 @@ class GCNTrainer(Trainer):
 
         term_def_loss = -self.opt['consistency_loss'] * (term_def-not_term_def)
         loss += term_def_loss
-        #loss += self.opt['consistency_loss'] * not_term_def
 
 
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
+        torch.nn.utils.clip_grad_norm_(self.main.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
+        self.main_optimizer.step()
+
+        
         return loss_val, sent_loss.item(), selection_loss.item()
 
     def predict(self, batch, unsort=True):
