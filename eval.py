@@ -154,4 +154,28 @@ for p in predictions:
 print('predictions by tagging accuracy: ', sum([1 if pred_sent[i] == batch.sent_gold()[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 print('predictions by tagging match with sent predictions: ', sum([1 if sent_predictions[i] == pred_sent[i] else 0 for i in range(len(sent_predictions))])/len(sent_predictions))
 
+true_positives = 0
+true_negative = 0
+false_positive = 0
+false_negative = 0
+
+for i in range(len(sent_predictions)):
+    if sent_predictions[i] == 'definition' and batch.sent_gold()[i] == 'definition':
+        true_positives += 1
+    if sent_predictions[i] == 'definition' and batch.sent_gold()[i] == 'none':
+        false_positive += 1
+    if sent_predictions[i] == 'none' and batch.sent_gold()[i] == 'definition':
+        false_negative += 1
+    if sent_predictions[i] == 'none' and batch.sent_gold()[i] == 'none':
+        true_negative += 1
+
+p = true_positives/(true_positives+false_positive)
+r = true_positives/(true_positives+false_negative)
+f1 = 2*p*r/(p+r)
+
+
+print('precision: ', p)
+print('recall: ', r)
+print('f1: ', f1)
+
 print("Evaluation ended.")
