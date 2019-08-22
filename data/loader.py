@@ -31,7 +31,8 @@ class DataLoader(object):
             random.shuffle(indices)
             data = [data[i] for i in indices]
         self.id2label = dict([(v,k) for k,v in self.label2id.items()])
-        self.labels = [[self.id2label[l]] for d in data for l in d[-1]]
+        self.labels = [[self.id2label[l]] for d in data for l in d[-2]]
+        self.label_count = [d[-1] for d in data]
         self.num_examples = len(data)
 
         # chunk into batches
@@ -56,13 +57,21 @@ class DataLoader(object):
             for i, h in enumerate(d['head']):
                     adj[i][h] = 1
                     adj[h][i] = 1
-            processed += [(tokens, pos, head, adj, labels)]
+            labelset = set()
+            for l in labels:
+                if l != 3:
+                    labelset.add(l)
+            processed += [(tokens, pos, head, adj, labels, len(labelset))]
 
         return processed
 
     def gold(self):
         """ Return gold labels as a list. """
         return self.labels
+
+    def count_gold(self):
+        """ Return gold labels as a list. """
+        return self.label_count
 
     def __len__(self):
         return len(self.data)
@@ -76,7 +85,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 5
+        assert len(batch) == 6
 
         # sort all fields by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
@@ -96,8 +105,9 @@ class DataLoader(object):
         adj = get_float_tensor2D(batch[3], batch_size)
 
         labels = get_long_tensor(batch[4], batch_size)
+        label_count = torch.LongTensor(batch[5])
 
-        return (words, masks, pos, head, adj, labels, orig_idx)
+        return (words, masks, pos, head, adj, labels, label_count, orig_idx)
 
     def __iter__(self):
         for i in range(self.__len__()):

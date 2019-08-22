@@ -53,20 +53,21 @@ def unpack_batch(batch, cuda):
     if cuda:
         inputs = [Variable(b.cuda()) for b in batch[:5]]
         labels = Variable(batch[5].cuda())
+        label_count = Variable(batch[6].cuda())
     else:
         print("Error")
         exit(1)
     tokens = batch[0]
     head = batch[3]
     lens = batch[1].eq(0).long().sum(1).squeeze()
-    return inputs, labels, tokens, head, lens
+    return inputs, labels, label_count, tokens, head, lens
 
 class GCNTrainer(Trainer):
     def __init__(self, opt, emb_matrix=None):
         self.opt = opt
         self.emb_matrix = emb_matrix
         self.model = GCNClassifier(opt, emb_matrix=emb_matrix)
-        self.criterion = nn.CrossEntropyLoss(reduction="none")
+        self.criterion = nn.CrossEntropyLoss()
         self.parameters = [p for p in self.model.parameters() if p.requires_grad]
         self.crf = CRF(self.opt['num_class'], batch_first=True)
         self.bc = nn.BCELoss()
@@ -78,12 +79,12 @@ class GCNTrainer(Trainer):
         self.optimizer = torch_utils.get_optimizer(opt['optim'], self.parameters, opt['lr'])
 
     def update(self, batch):
-        inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, label_count, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits = self.model(inputs)
+        logits, count = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -94,20 +95,23 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
+        count_loss = self.opt['count_loss'] * self.criterion(count, label_count)
+        loss += count_loss
+
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
-        return loss_val, loss_val, loss_val
+        return loss_val, loss_val, count_loss
 
     def predict(self, batch, unsort=True):
-        inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
+        inputs, labels, label_count, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
 
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits = self.model(inputs)
+        logits, count = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -150,7 +154,8 @@ class GCNTrainer(Trainer):
 
         probs = F.softmax(logits, dim=1)
         predictions = self.crf.decode(logits, mask=mask)
+        count = torch.max(count, 1)[1].data.cpu().numpy().tolist()
 
         if unsort:
-            _, predictions, probs = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs)))]
-        return predictions, probs, loss.item()
+            _, predictions, probs, count = [list(t) for t in zip(*sorted(zip(orig_idx, predictions, probs, count)))]
+        return predictions, probs, loss.item(), count

@@ -30,10 +30,10 @@ class GCNClassifier(nn.Module):
     def forward(self, inputs):
         _, masks, _, _, _ = inputs  # unpack
 
-        outputs, gcn_outputs = self.gcn_model(inputs)
+        outputs, gcn_outputs, count = self.gcn_model(inputs)
         logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
 
-        return logits
+        return logits, count
 
 
 class GCNRelationModel(nn.Module):
@@ -87,7 +87,7 @@ class GCNRelationModel(nn.Module):
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
-        h, pool_mask, gcn_outputs = self.gcn(adj, inputs)
+        h, pool_mask, gcn_outputs, count = self.gcn(adj, inputs)
 
         # pooling
         # pool_type = self.opt['pooling']
@@ -95,7 +95,7 @@ class GCNRelationModel(nn.Module):
         # outputs = torch.cat([h_out], dim=1)
         outputs = self.out_mlp(h)
         gcn_outputs = self.gcn_out_mlp(gcn_outputs)
-        return outputs, gcn_outputs
+        return outputs, gcn_outputs, count
 
 
 class GCN(nn.Module):
@@ -121,6 +121,8 @@ class GCN(nn.Module):
 
         self.in_drop = nn.Dropout(opt['input_dropout'])
         self.gcn_drop = nn.Dropout(opt['gcn_dropout'])
+
+        self.count = nn.Linear(self.in_dim, opt['num_class'])
 
         # gcn layer
         self.W = nn.ModuleList()
@@ -174,7 +176,11 @@ class GCN(nn.Module):
             gcn_inputs = self.gcn_drop(gAxW) if l < self.layers - 1 else gAxW
 
 
-        return lstm_outs, masks.unsqueeze(2), gcn_inputs
+        pool_type = self.opt['pooling']
+        out = pool(lstm_outs, masks.unsqueeze(2), type=pool_type)
+        count = self.count(out)
+
+        return lstm_outs, masks.unsqueeze(2), gcn_inputs, count
 
 
 def pool(h, mask, type='max'):

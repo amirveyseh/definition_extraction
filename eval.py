@@ -79,12 +79,14 @@ id2label = dict([(v, k) for k, v in label2id.items()])
 # sent_id2label = dict([(v, k) for k, v in sent_label2id.items()])
 
 predictions = []
+pred_counts = []
 all_probs = []
 batch_iter = tqdm(batch)
 for i, b in enumerate(batch_iter):
-    preds, probs, _ = trainer.predict(b)
+    preds, probs, _, count = trainer.predict(b)
     predictions += preds
     all_probs += probs
+    pred_counts += count
 
 lens = [len(p) for p in predictions]
 
@@ -133,5 +135,13 @@ with open('report/confusion_matrix.txt', 'w') as file:
     for row in cm:
         file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
 print("confusion matrix created!")
+
+print(batch.count_gold()[:10])
+print(pred_counts[:10])
+acc = 0
+for i in range(len(batch.count_gold())):
+    if batch.count_gold()[i] == pred_counts[i]:
+        acc += 1
+print('count prediction accuracy: ', acc / len(pred_counts))
 
 print("Evaluation ended.")
