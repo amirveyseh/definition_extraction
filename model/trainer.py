@@ -121,35 +121,35 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
-        self.crf.transitions[2][3] = 1
-        self.crf.transitions[2][5] = 1
-        self.crf.transitions[2][7] = 1
-        self.crf.transitions[2][8] = 1
-        self.crf.transitions[0][3] = 1
-        self.crf.transitions[0][4] = 1
-        self.crf.transitions[0][8] = 1
-        # self.crf.transitions[1][3] = 1
-        # self.crf.transitions[1][4] = 1
-        # self.crf.transitions[1][7] = 1
-        self.crf.transitions[5][3] = 1
-        self.crf.transitions[5][6] = 1
-        self.crf.transitions[5][7] = 1
-        self.crf.transitions[5][8] = 1
-        # self.crf.transitions[6][4] = 1
-        # self.crf.transitions[6][7] = 1
-        # self.crf.transitions[6][8] = 1
-        self.crf.transitions[3][4] = 1
-        self.crf.transitions[3][7] = 1
-        self.crf.transitions[3][8] = 1
-        self.crf.transitions[4][3] = 1
-        self.crf.transitions[4][7] = 1
-        self.crf.transitions[4][8] = 1
-        self.crf.transitions[7][3] = 1
-        self.crf.transitions[7][4] = 1
-        self.crf.transitions[7][8] = 1
-        self.crf.transitions[8][3] = 1
-        self.crf.transitions[8][4] = 1
-        self.crf.transitions[8][7] = 1
+        # self.crf.transitions[2][3] = 1
+        # self.crf.transitions[2][5] = 1
+        # self.crf.transitions[2][7] = 1
+        # self.crf.transitions[2][8] = 1
+        # self.crf.transitions[0][3] = 1
+        # self.crf.transitions[0][4] = 1
+        # self.crf.transitions[0][8] = 1
+        # # self.crf.transitions[1][3] = 1
+        # # self.crf.transitions[1][4] = 1
+        # # self.crf.transitions[1][7] = 1
+        # self.crf.transitions[5][3] = 1
+        # self.crf.transitions[5][6] = 1
+        # self.crf.transitions[5][7] = 1
+        # self.crf.transitions[5][8] = 1
+        # # self.crf.transitions[6][4] = 1
+        # # self.crf.transitions[6][7] = 1
+        # # self.crf.transitions[6][8] = 1
+        # self.crf.transitions[3][4] = 1
+        # self.crf.transitions[3][7] = 1
+        # self.crf.transitions[3][8] = 1
+        # self.crf.transitions[4][3] = 1
+        # self.crf.transitions[4][7] = 1
+        # self.crf.transitions[4][8] = 1
+        # self.crf.transitions[7][3] = 1
+        # self.crf.transitions[7][4] = 1
+        # self.crf.transitions[7][8] = 1
+        # self.crf.transitions[8][3] = 1
+        # self.crf.transitions[8][4] = 1
+        # self.crf.transitions[8][7] = 1
 
         probs = F.softmax(logits, dim=1)
         predictions = self.crf.decode(logits, mask=mask)
