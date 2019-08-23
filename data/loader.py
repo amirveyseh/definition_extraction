@@ -56,7 +56,11 @@ class DataLoader(object):
             for i, h in enumerate(d['head']):
                     adj[i][h] = 1
                     adj[h][i] = 1
-            processed += [(tokens, pos, head, adj, labels)]
+            others = [0] * len(labels)
+            for i in range(len(labels)):
+                if l == 3:
+                    others[i] = 1
+            processed += [(tokens, pos, head, adj, others, labels)]
 
         return processed
 
@@ -76,7 +80,7 @@ class DataLoader(object):
         batch = self.data[key]
         batch_size = len(batch)
         batch = list(zip(*batch))
-        assert len(batch) == 5
+        assert len(batch) == 6
 
         # sort all fields by lens for easy RNN operations
         lens = [len(x) for x in batch[0]]
@@ -94,10 +98,11 @@ class DataLoader(object):
         pos = get_long_tensor(batch[1], batch_size)
         head = get_long_tensor(batch[2], batch_size)
         adj = get_float_tensor2D(batch[3], batch_size)
+        others = get_long_tensor(batch[4], batch_size)
 
-        labels = get_long_tensor(batch[4], batch_size)
+        labels = get_long_tensor(batch[5], batch_size)
 
-        return (words, masks, pos, head, adj, labels, orig_idx)
+        return (words, masks, pos, head, adj, others, labels, orig_idx)
 
     def __iter__(self):
         for i in range(self.__len__()):

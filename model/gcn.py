@@ -28,12 +28,20 @@ class GCNClassifier(nn.Module):
         return self.gcn_model.gcn.conv_l2()
 
     def forward(self, inputs):
-        _, masks, _, _, _ = inputs  # unpack
+        _, masks, _, _, _, others = inputs  # unpack
 
         outputs, gcn_outputs = self.gcn_model(inputs)
         logits = self.classifier(torch.cat([outputs, gcn_outputs], dim=2))
 
-        return logits
+        pool_type = self.opt['pooling']
+        non_others = others - 1
+        non_others[-1] = 1
+        non_other_out = pool(outputs, non_others.unsqueeze(2).byte(), type=pool_type)
+        other_out = pool(outputs, others.unsqueeze(2).byte(), type=pool_type)
+        sf = nn.Softmax(1)
+        diff = (sf(other_out) * sf(non_other_out)).sum(1).mean()
+
+        return logits, diff
 
 
 class GCNRelationModel(nn.Module):
@@ -83,7 +91,7 @@ class GCNRelationModel(nn.Module):
             print("Finetune all embeddings.")
 
     def forward(self, inputs):
-        words, masks, pos, head, adj = inputs  # unpack
+        words, masks, pos, head, adj, others = inputs  # unpack
         l = (masks.data.cpu().numpy() == 0).astype(np.int64).sum(1)
         maxlen = max(l)
 
@@ -144,7 +152,7 @@ class GCN(nn.Module):
         return rnn_outputs
 
     def forward(self, adj, inputs):
-        words, masks, pos, head, adj = inputs  # unpack
+        words, masks, pos, head, adj, others = inputs  # unpack
         word_embs = self.emb(words)
         embs = [word_embs]
         if self.opt['pos_dim'] > 0:

@@ -51,8 +51,8 @@ class Trainer(object):
 
 def unpack_batch(batch, cuda):
     if cuda:
-        inputs = [Variable(b.cuda()) for b in batch[:5]]
-        labels = Variable(batch[5].cuda())
+        inputs = [Variable(b.cuda()) for b in batch[:6]]
+        labels = Variable(batch[6].cuda())
     else:
         print("Error")
         exit(1)
@@ -83,7 +83,7 @@ class GCNTrainer(Trainer):
         # step forward
         self.model.train()
         self.optimizer.zero_grad()
-        logits = self.model(inputs)
+        logits, diff = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0
@@ -94,12 +94,15 @@ class GCNTrainer(Trainer):
         mask = mask.byte()
         loss = -self.crf(logits, labels, mask=mask)
 
+        diff_loss = -self.opt['diff_loss'] * diff
+        loss += diff_loss
+
         loss_val = loss.item()
         # backward
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.opt['max_grad_norm'])
         self.optimizer.step()
-        return loss_val, loss_val, loss_val
+        return loss_val, loss_val, diff_loss
 
     def predict(self, batch, unsort=True):
         inputs, labels, tokens, head, lens = unpack_batch(batch, self.opt['cuda'])
@@ -107,7 +110,7 @@ class GCNTrainer(Trainer):
         orig_idx = batch[-1]
         # forward
         self.model.eval()
-        logits = self.model(inputs)
+        logits, _ = self.model(inputs)
 
         labels = labels - 1
         labels[labels < 0] = 0

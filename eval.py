@@ -127,8 +127,8 @@ print('macro R: ', macro_r)
 print('macro F1: ', macro_f1)
 print("{} set evaluate result: {:.2f}\t{:.2f}\t{:.2f}".format(args.dataset, p, r, f1))
 
-cm = confusion_matrix(batch.gold(), predictions, labels=['B-Term', 'I-Term', 'B-Definition', 'I-Definition',
-                                                         'B-Qualifier', 'I-Qualifier', 'O'])
+cm = confusion_matrix(batch.gold(), predictions, labels=['B-attribute', 'B-value', 'O', 'I-object', 'I-action', 'B-action', 'B-object',
+               'I-attribute', 'I-value'])
 with open('report/confusion_matrix.txt', 'w') as file:
     for row in cm:
         file.write(('{:5d},' * len(row)).format(*row.tolist())+'\n')
