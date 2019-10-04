@@ -108,8 +108,8 @@ lens = [len(p) for p in predictions]
 
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
 sent_predictions = [sent_id2label[p] for p in sent_predictions]
-print(len(predictions))
-print(len(batch.gold()))
+#print(len(predictions))
+#print(len(batch.gold()))
 p, r, f1 = scorer.score(batch.gold(), predictions, verbose=True, verbose_output=args.per_class == 1)
 
 print('scroes from sklearn: ')
@@ -174,8 +174,8 @@ r = true_positives/(true_positives+false_negative)
 f1 = 2*p*r/(p+r)
 
 
-print('precision: ', p)
-print('recall: ', r)
-print('f1: ', f1)
+print('sentence precision: ', p)
+print('sentence recall: ', r)
+print('sentence f1: ', f1)
 
 print("Evaluation ended.")
