@@ -34,6 +34,8 @@ python eval.py saved_models/model_name --dataset test
 
 This will use the `best_model.pt` file by default. Use `--model checkpoint_epoch_10.pt` to specify a model checkpoint file.
 
+The evaluation script will print results of different metrics. We use the macro-f1 from sklearn as our main metric to compare the models.
+
 ## Retrain
 
 Reload a pretrained model and finetune it, run:
