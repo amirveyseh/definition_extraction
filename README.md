@@ -4,6 +4,7 @@
 - PyTorch
 - tqdm
 - sklearn
+- pytorch-crf
 
 ## Training
 
@@ -14,15 +15,6 @@ bash train.sh model_name
 
 Model checkpoints and logs will be saved to `./saved_models/model_name`.
 
-To change the dataset (contract or textbook) set the following parameters in `train.sh`:
-
-```
-For CONTRACT:
---data_dir dataset/definition/contract --vocab_dir dataset/vocab
-
-For Textbook:
---data_dir dataset/definition/textbook --vocab_dir dataset/definition/textbook/vocab
-```
 For the complete list of parameters see `train.py`.
 
 ## Evaluation
