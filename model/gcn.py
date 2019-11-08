@@ -1,5 +1,5 @@
 """
-GCN model for relation extraction.
+GCN model for definition extraction.
 """
 
 import torch
