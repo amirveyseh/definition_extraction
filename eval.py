@@ -90,22 +90,6 @@ for i, b in enumerate(batch_iter):
 
 lens = [len(p) for p in predictions]
 
-########################################
-
-# predictions_ = [[id2label[l + 1] for l in p] for p in predictions]
-#
-# with open("dataset/definition/lca/pred.json", 'w') as file:
-#     json.dump(predictions_, file)
-
-# gold = repack(batch.gold(), lens)
-#
-# assert len(predictions_) == len(gold)
-#
-# for i, p in enumerate(sent_predictions):
-#     if p == 0:
-#         predictions[i] = [0]*len(predictions_[i])
-########################################
-
 predictions = [[id2label[l + 1]] for p in predictions for l in p]
 sent_predictions = [sent_id2label[p] for p in sent_predictions]
 #print(len(predictions))
