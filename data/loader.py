@@ -1,5 +1,5 @@
 """
-Data loader for TACRED json files.
+Data loader.
 """
 
 import json
