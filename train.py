@@ -1,5 +1,5 @@
 """
-Train a model on TACRED.
+Train a model on Textbook.
 """
 
 import os
